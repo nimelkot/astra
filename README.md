@@ -2,15 +2,15 @@
 	<img src="assets/astra-social-banner.png" alt="Astra: local code intelligence for AI agents" width="100%">
 </p>
 
-Astra is a local code intelligence service for AI agents. It parses Python code into a structural NetworkX graph and a searchable local code-chunk index. The same engine is available through the `astra` CLI and the official MCP Python SDK.
+Astra is a local code intelligence service for AI agents. It parses repository files into a structural NetworkX graph and a searchable local code-chunk index, with AST-level enrichment for valid Python files. The same engine is available through the `astra` CLI and the official MCP Python SDK.
 
 ## Architecture
 
-The constellation mark represents the relationships Astra discovers across a codebase. Its pipeline has four stages: parse Python files without executing them, build the structural graph, index code chunks, and retrieve semantic matches with graph expansion.
+The constellation mark represents the relationships Astra discovers across a codebase. Its pipeline has four stages: discover files without executing them, build the structural graph, index code chunks, and retrieve semantic matches with graph expansion.
 
 | Component | Role | Output |
 | --- | --- | --- |
-| AST and text parser | Reads Python declarations, docstrings, symbols, and calls; indexes other UTF-8 text files as file-level chunks. | Code chunks and references |
+| AST and text parser | Reads Python declarations, docstrings, symbols, and calls; indexes other readable project files as file-level chunks. | Code chunks and references |
 | Structural graph | Builds directed NetworkX relationships between modules, declarations, and callers. | `.astra_graph.json` |
 | Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
 | Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
@@ -70,8 +70,9 @@ Index a project first. Replace the example path with the folder you want Astra t
 astra index C:\Users\YourName\Downloads\my-project
 ```
 
-The command recursively scans nested folders for UTF-8 text files without importing or executing them. Valid Python files receive AST-level declarations and call relationships; other text-based source, configuration, markup, and documentation files receive searchable file-level chunks. Binary files, files larger than 2 MB, and generated or dependency directories such as `.git`, `.venv`, `node_modules`, and `.astra_vectors` are skipped.
-| AST and text parser | Reads Python declarations, docstrings, symbols, and calls; indexes other UTF-8 text files as file-level chunks. | Code chunks and references |
+The command recursively scans nested folders for files without importing or executing them. Valid Python files receive AST-level declarations and call relationships; other readable source, configuration, markup, and documentation files receive searchable file-level chunks. Binary files, unsupported encodings, files larger than 2 MB, and generated or dependency directories such as `.git`, `.venv`, `node_modules`, and `.astra_vectors` are skipped.
+
+For a complete support matrix, see [docs/supported-file-types.md](docs/supported-file-types.md).
 
 ```text
 my-project/
@@ -158,7 +159,7 @@ The four native tools are:
 
 | Tool | Purpose |
 | --- | --- |
-| `astra_index_repo(path)` | Index a local Python repository. |
+| `astra_index_repo(path)` | Index a local repository. |
 | `astra_semantic_search(path, query, limit)` | Search indexed code chunks. |
 | `astra_get_callers(path, target, limit)` | Find callers through the structural graph. |
 | `astra_hybrid_context(path, query, limit, expansion)` | Combine semantic matches with graph expansion. |
