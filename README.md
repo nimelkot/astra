@@ -37,35 +37,11 @@ The canonical brand assets are available as the [light icon](assets/astra-icon-l
 
 ## Install
 
-Python 3.10+ is required.
-
-Clone the repository and change into its root directory. The install command must be run from the directory that contains `pyproject.toml`:
-
-```bash
-git clone https://github.com/nimelkot/astra.git
-cd astra
-```
-
-On Windows PowerShell, verify that you are in the correct directory before installing:
-
-```powershell
-Get-ChildItem pyproject.toml
-```
-
-If that command reports that the file is missing, use `cd` to enter the cloned `astra` directory first. Do not run `pip install -e ".[dev]"` from `Downloads`, a parent folder, or a separate test folder.
-
-```bash
-python -m venv .venv
-# Windows PowerShell
-.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
-```
-
-The first indexing run may download the Sentence Transformers model when the optional Chroma path is available. Astra still works without model access using its deterministic local lexical fallback.
+Python 3.10+ is required. Choose one of these installation paths.
 
 ### Install directly from GitHub
 
-Users who only need the `astra` and `astra-mcp` commands can install the latest committed version directly from GitHub without cloning the repository:
+This is the simplest option for using Astra. It installs the `astra` and `astra-mcp` commands without placing a checkout in your current folder:
 
 ```powershell
 python -m pip install "git+https://github.com/nimelkot/astra.git"
@@ -77,37 +53,95 @@ For an isolated command-line installation, use `pipx`:
 pipx install "git+https://github.com/nimelkot/astra.git"
 ```
 
-Use the clone-and-editable setup above when developing Astra or running its tests locally.
+### Clone for development
+
+Use this option when you want to edit Astra or run its tests. Run the editable install from the cloned repository root, the directory containing `pyproject.toml`:
+
+```powershell
+git clone https://github.com/nimelkot/astra.git
+cd astra
+Get-ChildItem pyproject.toml
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+```
+
+If `Get-ChildItem pyproject.toml` cannot find the file, you are not in the Astra repository root yet. The folder you want to analyze can be anywhere; it does not need to be inside the Astra checkout.
+
+## Quick start
+
+Index a Python project first. Replace the example path with the folder you want Astra to analyze:
+
+```powershell
+astra index C:\Users\YourName\Downloads\my-project
+```
+
+The command recursively scans `.py` files without importing or executing them. It writes the index beside the target code:
+
+```text
+my-project/
+├── .astra_graph.json   # structural modules, declarations, and call relationships
+└── .astra_vectors/     # local searchable code chunks
+```
+
+Run `astra index` again after the source code changes. Indexing replaces the previous graph and chunk index for that target directory.
 
 ## CLI
 
-```bash
-astra index .
-astra search "authentication token validation" --path . --limit 8
-astra query callers calculate_total --path .
+### Semantic search
+
+Search by a concept, behavior, symbol name, or docstring text:
+
+```powershell
+astra search "authentication token validation" --path C:\Users\YourName\Downloads\my-project --limit 8
 ```
 
-Index artifacts are written inside the target directory: `.astra_graph.json` and `.astra_vectors/`. They are ignored by Git by default.
+The result table shows the match score, declaration kind, file path, symbol, and source lines. Search results are empty when no indexed chunk shares terms with the query.
+
+### Structural callers
+
+Find functions that call a target function:
+
+```powershell
+astra query callers calculate_total --path C:\Users\YourName\Downloads\my-project
+```
+
+The `callers` query uses the saved AST graph and reports matching caller nodes as JSON. The current CLI structural query type is `callers`.
+
+### Search behavior
+
+The default index is deterministic and works offline using local lexical matching. To enable Sentence Transformers and Chroma vector retrieval, set this before indexing and searching:
+
+```powershell
+$env:ASTRA_ENABLE_EMBEDDINGS = "1"
+astra index C:\Users\YourName\Downloads\my-project
+astra search "rate limiting and retries" --path C:\Users\YourName\Downloads\my-project
+```
+
+The first embedding-enabled run may download the `all-MiniLM-L6-v2` model. If model access or the vector store is unavailable, Astra falls back to the local search implementation.
 
 ## MCP
 
-The package exposes an stdio MCP server with four native tools:
+Astra also exposes its engine as an official MCP server over stdio. Configure your MCP host to run `astra-mcp`; the server must be installed in the environment used by that host.
 
-- `astra_index_repo(path)` indexes a repository.
-- `astra_semantic_search(path, query, limit)` searches code chunks.
-- `astra_get_callers(path, target, limit)` resolves graph callers.
-- `astra_hybrid_context(path, query, limit, expansion)` combines semantic matches and structural expansion.
+The four native tools are:
 
-The repository includes [.vscode/mcp.json](.vscode/mcp.json) for VS Code MCP clients. For other hosts, register the installed command in the host's server configuration:
+| Tool | Purpose |
+| --- | --- |
+| `astra_index_repo(path)` | Index a local Python repository. |
+| `astra_semantic_search(path, query, limit)` | Search indexed code chunks. |
+| `astra_get_callers(path, target, limit)` | Find callers through the structural graph. |
+| `astra_hybrid_context(path, query, limit, expansion)` | Combine semantic matches with graph expansion. |
+
+The repository includes [.vscode/mcp.json](.vscode/mcp.json) for VS Code MCP clients. For other hosts, register the server in the host's configuration:
 
 ```toml
-# Example shape for hosts using TOML server configuration
 [mcp_servers.astra]
 command = "astra-mcp"
 args = []
 ```
 
-For a host that requires an explicit Python interpreter, use the absolute path to `.venv/Scripts/astra-mcp.exe` on Windows or `.venv/bin/astra-mcp` on macOS/Linux. The server communicates over stdio, so do not redirect its stdout.
+If the host cannot find commands from your shell, use the absolute executable path: `.venv\Scripts\astra-mcp.exe` on Windows or `.venv/bin/astra-mcp` on macOS/Linux. The server communicates over stdio, so do not redirect its stdout.
 
 ## Development
 
