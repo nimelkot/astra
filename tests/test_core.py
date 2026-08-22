@@ -23,3 +23,15 @@ def test_index_search_and_callers(tmp_path: Path) -> None:
 def test_invalid_python_is_skipped(tmp_path: Path) -> None:
     (tmp_path / "broken.py").write_text("def broken(:\n", encoding="utf-8")
     assert AstraEngine(tmp_path).index()["chunks"] == 0
+
+def test_nested_text_files_are_indexed(tmp_path: Path) -> None:
+    nested = tmp_path / "frontend" / "src"
+    nested.mkdir(parents=True)
+    (nested / "app.ts").write_text("export function authenticateToken() {}", encoding="utf-8")
+    (tmp_path / "settings.json").write_text('{"retry_limit": 3}', encoding="utf-8")
+
+    result = AstraEngine(tmp_path).index()
+
+    assert result["files"] == 2
+    assert result["chunks"] == 2
+    assert AstraEngine(tmp_path).search("authenticate token")

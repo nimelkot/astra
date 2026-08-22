@@ -5,7 +5,8 @@ from pathlib import Path
 
 from .models import CodeChunk
 
-SUPPORTED_SUFFIXES = {".py"}
+MAX_TEXT_FILE_SIZE = 2 * 1024 * 1024
+EXCLUDED_DIRS = {".git", ".astra_vectors", "__pycache__", ".venv", "venv", "node_modules"}
 
 
 class CodeParser:
@@ -13,18 +14,28 @@ class CodeParser:
 
     def parse_file(self, path: Path, root: Path) -> tuple[list[CodeChunk], list[dict[str, str]]]:
         try:
+            if path.stat().st_size > MAX_TEXT_FILE_SIZE:
+                return [], []
             source = path.read_text(encoding="utf-8")
-            tree = ast.parse(source, filename=str(path))
-        except (OSError, SyntaxError, UnicodeDecodeError):
+        except (OSError, UnicodeDecodeError):
             return [], []
 
         relative = path.relative_to(root).as_posix()
         chunks: list[CodeChunk] = []
         references: list[dict[str, str]] = []
+        tree = None
+        if path.suffix.lower() == ".py":
+            try:
+                tree = ast.parse(source, filename=str(path))
+            except SyntaxError:
+                return [], []
         module_id = f"{relative}:module"
         chunks.append(
             CodeChunk(module_id, relative, path.stem, "module", 1, len(source.splitlines()), source)
         )
+
+        if tree is None:
+            return chunks, references
 
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
@@ -74,11 +85,13 @@ class CodeParser:
     def discover(self, target: str | Path) -> list[Path]:
         root = Path(target).resolve()
         if root.is_file():
-            return [root] if root.suffix in SUPPORTED_SUFFIXES else []
+            return [root]
         return sorted(
             p
-            for p in root.rglob("*.py")
-            if not any(
-                part.startswith(".") or part in {"__pycache__", ".venv", "venv"} for part in p.parts
+            for p in root.rglob("*")
+            if p.is_file()
+            and not any(
+                part.startswith(".") or part in EXCLUDED_DIRS
+                for part in p.relative_to(root).parts
             )
         )
