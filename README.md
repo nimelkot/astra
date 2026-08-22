@@ -1,6 +1,29 @@
+<p align="center">
+	<img src="assets/astra-logo-dark.png" alt="astra logo" width="325">
+</p>
+
+<p align="center">Local code intelligence for AI agents.</p>
+
 # Astra
 
 Astra is a local code intelligence service for AI agents. It parses Python code into a structural NetworkX graph and a searchable local code-chunk index. The same engine is available through the `astra` CLI and the official MCP Python SDK.
+
+## Components
+
+The repository uses a constellation mark to represent the relationships Astra discovers across a codebase. The canonical brand assets are available as [the light icon](assets/astra-icon-light.png), [the dark icon](assets/astra-icon-dark.png), [the light logo](assets/astra-logo-light.png), and [the dark logo](assets/astra-logo-dark.png). The [social preview](assets/astra-social-preview.png) is the 2:1 repository cover, and the [wide social banner](assets/astra-social-banner.png) is available for other sharing contexts.
+
+| Component | Role | Output |
+| --- | --- | --- |
+| AST parser | Reads Python declarations, docstrings, symbols, and calls without executing project code. | Code chunks and references |
+| Structural graph | Builds directed NetworkX relationships between modules, declarations, and callers. | `.astra_graph.json` |
+| Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
+| Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
+
+The MCP surface exposes four tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, and `astra_hybrid_context`.
+
+![Astra indexing pipeline](assets/astra-pipeline.png)
+
+The system moves through four stages: parse Python files without executing them, build the structural graph, index code chunks, and retrieve semantic matches with graph expansion. The [component map](assets/astra-components.png) shows how the CLI and MCP host connect to the shared engine and its on-disk artifacts.
 
 ## Install
 
