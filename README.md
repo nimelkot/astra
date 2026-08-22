@@ -1,6 +1,25 @@
+<p align="center">
+	<img src="assets/astra-logo.svg" alt="astra logo" width="246">
+</p>
+
+<p align="center">Local code intelligence for AI agents.</p>
+
 # Astra
 
 Astra is a local code intelligence service for AI agents. It parses Python code into a structural NetworkX graph and a searchable local code-chunk index. The same engine is available through the `astra` CLI and the official MCP Python SDK.
+
+## Components
+
+The repository uses a compact constellation mark to represent the relationships Astra discovers across a codebase. The supplied brand assets are available as [the icon](assets/astra-icon.svg) and [the lowercase logo lockup](assets/astra-logo.svg).
+
+| Component | Role | Output |
+| --- | --- | --- |
+| AST parser | Reads Python declarations, docstrings, symbols, and calls without executing project code. | Code chunks and references |
+| Structural graph | Builds directed NetworkX relationships between modules, declarations, and callers. | `.astra_graph.json` |
+| Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
+| Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
+
+The MCP surface exposes four tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, and `astra_hybrid_context`.
 
 ## Install
 
