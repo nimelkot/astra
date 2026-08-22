@@ -39,6 +39,25 @@ def test_nested_text_files_are_indexed(tmp_path: Path) -> None:
     assert AstraEngine(tmp_path).search("authenticate token")
 
 
+def test_python_nodes_with_non_list_body_do_not_crash(tmp_path: Path) -> None:
+    (tmp_path / "edge_case.py").write_text(
+        "def outer(value):\n"
+        "    callback = lambda x: process(x)\n"
+        "\n"
+        "    def inner():\n"
+        "        return value\n"
+        "\n"
+        "    return callback(inner())\n",
+        encoding="utf-8",
+    )
+
+    result = AstraEngine(tmp_path).index()
+
+    assert result["files"] == 1
+    assert result["chunks"] == 3
+    assert AstraEngine(tmp_path).search("outer")
+
+
 def test_visualization_contains_both_artifacts(tmp_path: Path) -> None:
     (tmp_path / "app.py").write_text("def hello():\n    return 'world'\n", encoding="utf-8")
     AstraEngine(tmp_path).index()
