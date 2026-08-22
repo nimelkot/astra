@@ -71,6 +71,14 @@ def astra_tether(path: str, cycle_limit: int = 20, fanout_threshold: int = 12) -
 
 
 @mcp.tool()
+def astra_get_fragility_hotspots(
+    path: str, limit: int = 10, threshold: float = 75.0
+) -> dict:
+    """Rank fragile functions and classes using graph centrality and AST complexity."""
+    return AstraEngine(Path(path)).fragility_hotspots(limit=limit, threshold=threshold)
+
+
+@mcp.tool()
 def astra_visualize(path: str, output: str | None = None) -> dict:
     """Generate a local HTML visualization and return its path and file URL."""
     report = write_visualization(Path(path), output)

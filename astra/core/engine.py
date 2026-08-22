@@ -55,7 +55,7 @@ class AstraEngine:
         self.graph = StructuralGraph()
         self.graph.add_chunks(chunks, references)
         self.graph.save(self.graph_path)
-        self._save_cache({"version": 1, "files": next_cache_files})
+        self._save_cache({"version": 2, "files": next_cache_files})
         count = self.vectors.index(
             chunks,
             changed_paths=changed_paths,
@@ -147,15 +147,20 @@ class AstraEngine:
         report["root"] = str(self.root)
         return report
 
+    def fragility_hotspots(self, limit: int = 10, threshold: float = 75.0) -> dict:
+        report = self.graph.fragility_hotspots(limit=limit, threshold=threshold)
+        report["root"] = str(self.root)
+        return report
+
     def _load_cache(self) -> dict:
         if not self.cache_path.exists():
-            return {"version": 1, "files": {}}
+            return {"version": 2, "files": {}}
         try:
             data = json.loads(self.cache_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
-            return {"version": 1, "files": {}}
-        if data.get("version") != 1 or not isinstance(data.get("files"), dict):
-            return {"version": 1, "files": {}}
+            return {"version": 2, "files": {}}
+        if data.get("version") != 2 or not isinstance(data.get("files"), dict):
+            return {"version": 2, "files": {}}
         return data
 
     def _save_cache(self, cache: dict) -> None:

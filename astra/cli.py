@@ -143,6 +143,17 @@ def tether(
 
 
 @app.command()
+def fragility(
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+    limit: int = typer.Option(10, min=1, max=100),
+    threshold: float = typer.Option(75.0, min=0, max=100),
+) -> None:
+    """Rank fragile functions and classes using graph and AST metrics."""
+    result = _engine(path).fragility_hotspots(limit=limit, threshold=threshold)
+    console.print_json(json.dumps(result))
+
+
+@app.command()
 def visualize(
     path: Path = typer.Argument(Path("."), exists=True, file_okay=False),
     output: Path | None = typer.Option(None, "--output", "-o"),

@@ -249,6 +249,31 @@ def test_tether_reports_cycles(tmp_path: Path) -> None:
     assert any(item["type"] == "cycle_detected" for item in report["anomalies"])
 
 
+def test_fragility_hotspots_combine_graph_and_ast_metrics(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(
+        "def stable(value):\n"
+        "    return value\n"
+        "\n"
+        "def fragile(a, b, c):\n"
+        "    if a:\n"
+        "        for value in b:\n"
+        "            if value > c:\n"
+        "                return stable(value)\n"
+        "    return stable(c)\n",
+        encoding="utf-8",
+    )
+    engine = AstraEngine(tmp_path)
+    engine.index()
+
+    report = engine.fragility_hotspots(limit=10)
+
+    fragile = next(item for item in report["hotspots"] if item["name"] == "fragile")
+    assert fragile["branches"] == 3
+    assert fragile["parameters"] == 3
+    assert fragile["score"] >= 0
+    assert report["formula"]
+
+
 def test_index_cache_tracks_file_hash_changes(tmp_path: Path) -> None:
     source_file = tmp_path / "app.py"
     source_file.write_text("def greet():\n    return 'hi'\n", encoding="utf-8")

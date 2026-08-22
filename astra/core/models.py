@@ -15,6 +15,9 @@ class CodeChunk:
     source: str
     docstring: str = ""
     symbols: list[str] = field(default_factory=list)
+    branches: int = 0
+    nesting: int = 0
+    parameters: int = 0
 
     def as_metadata(self) -> dict[str, Any]:
         return {
@@ -25,6 +28,9 @@ class CodeChunk:
             "end_line": self.end_line,
             "docstring": self.docstring,
             "symbols": ",".join(self.symbols),
+            "branches": self.branches,
+            "nesting": self.nesting,
+            "parameters": self.parameters,
         }
 
 
