@@ -1,0 +1,25 @@
+from pathlib import Path
+
+from astra.core.engine import AstraEngine
+
+
+def test_index_search_and_callers(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(
+        "def calculate_total(items):\n"
+        "    return sum(items)\n"
+        "\n"
+        "def checkout(items):\n"
+        "    return calculate_total(items)\n",
+        encoding="utf-8",
+    )
+    result = AstraEngine(tmp_path).index()
+    assert result["files"] == 1
+    assert result["chunks"] == 3
+    assert AstraEngine(tmp_path).search("calculate total")
+    callers = AstraEngine(tmp_path).callers("calculate_total")
+    assert any(item["name"] == "checkout" for item in callers)
+
+
+def test_invalid_python_is_skipped(tmp_path: Path) -> None:
+    (tmp_path / "broken.py").write_text("def broken(:\n", encoding="utf-8")
+    assert AstraEngine(tmp_path).index()["chunks"] == 0

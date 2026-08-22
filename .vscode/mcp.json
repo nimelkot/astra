@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "astra-code-context": {
+      "type": "stdio",
+      "command": "astra-mcp",
+      "args": []
+    }
+  }
+}

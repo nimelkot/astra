@@ -1,0 +1,41 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from mcp.server import MCPServer
+
+from .core.engine import AstraEngine
+
+mcp = MCPServer("Astra", version="0.1.0")
+
+
+@mcp.tool()
+def astra_index_repo(path: str) -> dict:
+    """Index a local Python code directory into Astra's graph and vector store."""
+    return AstraEngine(Path(path)).index()
+
+
+@mcp.tool()
+def astra_semantic_search(path: str, query: str, limit: int = 10) -> list[dict]:
+    """Search indexed code chunks by conceptual intent."""
+    return [result.as_dict() for result in AstraEngine(Path(path)).search(query, limit)]
+
+
+@mcp.tool()
+def astra_get_callers(path: str, target: str, limit: int = 50) -> list[dict]:
+    """Find exact callers of a function or method using the structural graph."""
+    return AstraEngine(Path(path)).callers(target, limit)
+
+
+@mcp.tool()
+def astra_hybrid_context(path: str, query: str, limit: int = 5, expansion: int = 5) -> dict:
+    """Combine semantic matches with structural expansion."""
+    return AstraEngine(Path(path)).hybrid_context(query, limit, expansion)
+
+
+def main() -> None:
+    mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()
