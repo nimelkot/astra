@@ -319,6 +319,88 @@ class StructuralGraph:
             "analyzed": len(results),
         }
 
+    def blast_radius(self, target: str, max_nodes: int = 200) -> dict[str, Any]:
+        seeds = self.resolve_nodes(target)
+        if not seeds:
+            return {"target": target, "found": False, "nodes": [], "files": []}
+
+        impacted: set[str] = set(seeds)
+        frontier = list(seeds)
+        while frontier and len(impacted) < max_nodes:
+            node = frontier.pop(0)
+            for parent in self.graph.predecessors(node):
+                edge = self.graph.edges[parent, node]
+                if edge.get("kind") not in {"calls", "depends_on"} or parent in impacted:
+                    continue
+                impacted.add(parent)
+                frontier.append(parent)
+                if len(impacted) >= max_nodes:
+                    break
+
+        nodes = [
+            {
+                "id": node,
+                "name": self.graph.nodes[node].get("name", node),
+                "kind": self.graph.nodes[node].get("kind"),
+                "path": self.graph.nodes[node].get("path"),
+                "start_line": self.graph.nodes[node].get("start_line"),
+                "end_line": self.graph.nodes[node].get("end_line"),
+                "distance": self._reverse_distance(seeds, node),
+            }
+            for node in impacted
+        ]
+        nodes.sort(key=lambda item: (item["distance"], item["path"], item["start_line"] or 0))
+        files = sorted({node["path"] for node in nodes if node.get("path")})
+        return {
+            "target": target,
+            "found": True,
+            "seeds": seeds,
+            "nodes": nodes,
+            "files": files,
+            "truncated": bool(frontier),
+        }
+
+    def refactor_order(self, target: str) -> dict[str, Any]:
+        seeds = self.resolve_nodes(target)
+        if not seeds:
+            return {"target": target, "found": False, "order": []}
+        impacted = set(seeds)
+        frontier = list(seeds)
+        while frontier:
+            node = frontier.pop(0)
+            for parent in self.graph.predecessors(node):
+                edge = self.graph.edges[parent, node]
+                if edge.get("kind") not in {"calls", "depends_on"} or parent in impacted:
+                    continue
+                impacted.add(parent)
+                frontier.append(parent)
+        dependency_graph = self.graph.subgraph(impacted).copy()
+        dependency_graph.remove_edges_from(
+            [
+                (source, child)
+                for source, child, data in dependency_graph.edges(data=True)
+                if data.get("kind") not in {"calls", "depends_on"}
+            ]
+        )
+        try:
+            ordered = list(nx.topological_sort(dependency_graph))
+        except nx.NetworkXUnfeasible:
+            ordered = sorted(impacted)
+        return {
+            "target": target,
+            "found": True,
+            "order": ordered,
+            "cycles": not nx.is_directed_acyclic_graph(dependency_graph),
+        }
+
+    def _reverse_distance(self, seeds: list[str], node: str) -> int:
+        distances = [
+            nx.shortest_path_length(self.graph, node, seed)
+            for seed in seeds
+            if nx.has_path(self.graph, node, seed)
+        ]
+        return min(distances, default=0)
+
     def _walk(self, seed: str, direction: str, depth: int, max_nodes: int) -> set[str]:
         if depth <= 0:
             return set()

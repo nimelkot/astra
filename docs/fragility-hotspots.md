@@ -45,6 +45,32 @@ The tool returns the same report as the CLI. This gives an LLM structured eviden
 
 ## Agent Workflows
 
+## Impact and Refactoring Tools
+
+### Blast radius
+
+Use the impact tool before changing a function or class. It follows incoming `calls` and `depends_on` edges recursively, returning the affected declarations, distance from the target, and unique files:
+
+```powershell
+astra impact calculate_total --path C:\path\to\project --max-nodes 200
+```
+
+The MCP equivalent is `astra_impact(path, target, max_nodes)`. A missing target returns `found: false`; a large result can be bounded with `max_nodes`.
+
+### Dead code and circular dependencies
+
+`astra tether` reports orphan declarations, circular call/dependency chains, and high fan-out nodes. Its `cycles` and `orphans` details are available through both the CLI JSON output and `astra_tether`. Use `astra visualize` to inspect the corresponding structural graph and Tether panels.
+
+### Graph-aware refactor planning
+
+Generate a preview for a structural identifier rename:
+
+```powershell
+astra refactor-plan calculate_total sum_total --path C:\path\to\project
+```
+
+The MCP equivalent is `astra_refactor_plan(path, target, replacement)`. The plan uses indexed declarations and graph relationships to order impacted dependencies, reports each affected source chunk and occurrence count, and includes `before`/`after` previews. It is deliberately read-only (`apply: false`); the agent reviews the plan, applies an appropriate syntax-aware edit, and re-indexes afterward. Cyclic dependency groups are reported with `cycles: true` and a deterministic fallback order for review.
+
 ### Proactive test generation
 
 1. Call `astra_get_fragility_hotspots`.

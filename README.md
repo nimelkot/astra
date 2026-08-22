@@ -15,7 +15,7 @@ The constellation mark represents the relationships Astra discovers across a cod
 | Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
 | Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
 
-The MCP surface exposes nine tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_hybrid_context`, and `astra_visualize`.
+The MCP surface exposes eleven tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_impact`, `astra_refactor_plan`, `astra_hybrid_context`, and `astra_visualize`.
 
 <p align="center">
 	<img src="assets/astra-pipeline.png" alt="Astra indexing pipeline: parse, graph, index, and retrieve" width="900">
@@ -170,6 +170,22 @@ astra fragility --path C:\Users\YourName\Downloads\my-project --limit 10 --thres
 
 The matching MCP tool is `astra_get_fragility_hotspots`. See [docs/fragility-hotspots.md](docs/fragility-hotspots.md) for the scoring formula and LLM/CI workflows.
 
+### Impact and refactor planning
+
+Inspect the upstream blast radius of a declaration:
+
+```powershell
+astra impact calculate_total --path C:\Users\YourName\Downloads\my-project
+```
+
+Preview a graph-ordered identifier rename without changing files:
+
+```powershell
+astra refactor-plan calculate_total sum_total --path C:\Users\YourName\Downloads\my-project
+```
+
+The MCP equivalents are `astra_impact` and `astra_refactor_plan`. `astra tether` continues to report orphan declarations and circular dependencies, while `astra visualize` provides the structural anomaly view. See [docs/fragility-hotspots.md](docs/fragility-hotspots.md) for the full CLI/MCP workflow.
+
 ### Tether CI gate policy
 
 Recommended policy for pull-request automation:
@@ -255,6 +271,8 @@ The native tools are:
 | `astra_dipper(path, query, limit, parent_depth, child_depth, max_nodes, max_source_chars)` | Scoop a localized dependency-complete sub-graph for token-efficient LLM context. |
 | `astra_tether(path, cycle_limit, fanout_threshold)` | Run structural health checks and return architecture anomaly findings. |
 | `astra_get_fragility_hotspots(path, limit, threshold)` | Rank fragile declarations using graph centrality, AST complexity, and instability. |
+| `astra_impact(path, target, max_nodes)` | Trace incoming calls and dependencies to report a declaration's blast radius. |
+| `astra_refactor_plan(path, target, replacement)` | Preview a graph-ordered, read-only structural identifier rename. |
 | `astra_hybrid_context(path, query, limit, expansion)` | Combine semantic matches with graph expansion. |
 | `astra_visualize(path, output)` | Generate a local HTML graph report and return its file path and URL. |
 

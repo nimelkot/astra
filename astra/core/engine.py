@@ -152,6 +152,48 @@ class AstraEngine:
         report["root"] = str(self.root)
         return report
 
+    def blast_radius(self, target: str, max_nodes: int = 200) -> dict:
+        report = self.graph.blast_radius(target, max_nodes=max_nodes)
+        report["root"] = str(self.root)
+        return report
+
+    def refactor_plan(self, target: str, replacement: str) -> dict:
+        order_report = self.graph.refactor_order(target)
+        if not order_report["found"]:
+            return {"target": target, "replacement": replacement, **order_report}
+
+        identifier = re.compile(rf"\b{re.escape(target)}\b")
+        chunks_by_id = {chunk.id: chunk for chunk in self.vectors.chunks}
+        changes: list[dict] = []
+        for node_id in order_report["order"]:
+            chunk = chunks_by_id.get(node_id)
+            if chunk is None:
+                continue
+            matches = list(identifier.finditer(chunk.source))
+            if matches:
+                changes.append(
+                    {
+                        "id": chunk.id,
+                        "path": chunk.path,
+                        "start_line": chunk.start_line,
+                        "end_line": chunk.end_line,
+                        "kind": chunk.kind,
+                        "name": chunk.name,
+                        "occurrences": len(matches),
+                        "before": chunk.source,
+                        "after": identifier.sub(replacement, chunk.source),
+                    }
+                )
+        return {
+            "root": str(self.root),
+            "target": target,
+            "replacement": replacement,
+            "order": order_report["order"],
+            "cycles": order_report["cycles"],
+            "changes": changes,
+            "apply": False,
+        }
+
     def _load_cache(self) -> dict:
         if not self.cache_path.exists():
             return {"version": 2, "files": {}}
