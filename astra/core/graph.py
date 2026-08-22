@@ -44,6 +44,68 @@ class StructuralGraph:
                     )
         return found[:limit]
 
+    def shortest_path(self, source: str, target: str, max_hops: int = 12) -> dict[str, Any] | None:
+        source_matches = self._matching_nodes(source)
+        target_matches = self._matching_nodes(target)
+        if not source_matches or not target_matches:
+            return None
+
+        undirected = self.graph.to_undirected(as_view=True)
+        best_path: list[str] | None = None
+        for source_node in source_matches:
+            for target_node in target_matches:
+                if source_node == target_node:
+                    candidate = [source_node]
+                else:
+                    try:
+                        candidate = nx.shortest_path(undirected, source_node, target_node)
+                    except nx.NetworkXNoPath:
+                        continue
+                if best_path is None or len(candidate) < len(best_path):
+                    best_path = candidate
+
+        if best_path is None:
+            return None
+
+        hops = len(best_path) - 1
+        if hops > max_hops:
+            return None
+
+        nodes: list[dict[str, Any]] = []
+        for node_id in best_path:
+            data = self.graph.nodes[node_id]
+            nodes.append(
+                {
+                    "id": node_id,
+                    "name": data.get("name", node_id),
+                    "kind": data.get("kind"),
+                    "path": data.get("path"),
+                    "start_line": data.get("start_line"),
+                    "end_line": data.get("end_line"),
+                }
+            )
+
+        edges: list[dict[str, str]] = []
+        for left, right in zip(best_path, best_path[1:]):
+            if self.graph.has_edge(left, right):
+                edge = self.graph.edges[left, right]
+                edges.append({"from": left, "to": right, "kind": edge.get("kind", "related")})
+            elif self.graph.has_edge(right, left):
+                edge = self.graph.edges[right, left]
+                edges.append({"from": right, "to": left, "kind": edge.get("kind", "related")})
+            else:
+                edges.append({"from": left, "to": right, "kind": "related"})
+
+        return {"hops": hops, "nodes": nodes, "edges": edges}
+
+    def _matching_nodes(self, symbol: str) -> list[str]:
+        value = symbol.strip()
+        return [
+            node
+            for node, data in self.graph.nodes(data=True)
+            if node == value or data.get("name") == value or node.endswith(f":{value}")
+        ]
+
     def save(self, path: str | Path) -> None:
         Path(path).write_text(json.dumps(nx.node_link_data(self.graph), indent=2), encoding="utf-8")
 

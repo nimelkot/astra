@@ -44,6 +44,9 @@ class AstraEngine:
     def callers(self, target: str, limit: int = 50) -> list[dict]:
         return self.graph.callers(target, limit)
 
+    def path(self, source: str, target: str, max_hops: int = 12) -> dict | None:
+        return self.graph.shortest_path(source, target, max_hops)
+
     def hybrid_context(self, query: str, limit: int = 5, expansion: int = 5) -> dict:
         results = self.search(query, limit)
         related: list[dict] = []

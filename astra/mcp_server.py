@@ -35,6 +35,12 @@ def astra_hybrid_context(path: str, query: str, limit: int = 5, expansion: int =
 
 
 @mcp.tool()
+def astra_path(path: str, source: str, target: str, max_hops: int = 12) -> dict | None:
+    """Find the shortest structural path between two symbols."""
+    return AstraEngine(Path(path)).path(source, target, max_hops)
+
+
+@mcp.tool()
 def astra_visualize(path: str, output: str | None = None) -> dict:
     """Generate a local HTML visualization and return its path and file URL."""
     report = write_visualization(Path(path), output)
