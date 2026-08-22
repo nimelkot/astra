@@ -63,6 +63,22 @@ pip install -e ".[dev]"
 
 The first indexing run may download the Sentence Transformers model when the optional Chroma path is available. Astra still works without model access using its deterministic local lexical fallback.
 
+### Install directly from GitHub
+
+Users who only need the `astra` and `astra-mcp` commands can install the latest committed version directly from GitHub without cloning the repository:
+
+```powershell
+python -m pip install "git+https://github.com/nimelkot/astra.git"
+```
+
+For an isolated command-line installation, use `pipx`:
+
+```powershell
+pipx install "git+https://github.com/nimelkot/astra.git"
+```
+
+Use the clone-and-editable setup above when developing Astra or running its tests locally.
+
 ## CLI
 
 ```bash
