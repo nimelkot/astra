@@ -2,6 +2,8 @@
 	<img src="assets/astra-social-banner.png" alt="Astra: local code intelligence for AI agents" width="100%">
 </p>
 
+Astra is dual-licensed under the [MIT License](LICENSE) or [Apache License 2.0](LICENSE-APACHE), at your option.
+
 Astra is a local code intelligence service for AI agents. It parses repository files into a structural NetworkX graph and a searchable local code-chunk index, with full Python AST analysis and AST-compatible structural extraction across common source, markup, and configuration formats. The same engine is available through the `astra` CLI and the official MCP Python SDK.
 
 ## Architecture
