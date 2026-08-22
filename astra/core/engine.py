@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from pathlib import Path
 
@@ -14,6 +16,7 @@ class AstraEngine:
         self.root = Path(root).resolve()
         self.graph_path = self.root / ".astra_graph.json"
         self.vector_path = self.root / ".astra_vectors"
+        self.cache_path = self.root / ".astra_index_cache.json"
         self.parser = CodeParser()
         self.graph = (
             StructuralGraph.load(self.graph_path) if self.graph_path.exists() else StructuralGraph()
@@ -21,16 +24,43 @@ class AstraEngine:
         self.vectors = VectorIndex(self.vector_path)
 
     def index(self) -> dict[str, int | str]:
+        cache = self._load_cache()
+        cached_files: dict[str, dict] = cache.get("files", {})
         chunks: list[CodeChunk] = []
         references: list[dict[str, str]] = []
-        for path in self.parser.discover(self.root):
-            file_chunks, file_refs = self.parser.parse_file(path, self.root)
+        changed_paths: set[str] = set()
+        discovered = self.parser.discover(self.root)
+        current_paths = {path.relative_to(self.root).as_posix() for path in discovered}
+        removed_paths = set(cached_files) - current_paths
+        next_cache_files: dict[str, dict] = {}
+
+        for path in discovered:
+            relative = path.relative_to(self.root).as_posix()
+            file_hash = self._file_hash(path)
+            cached = cached_files.get(relative)
+            if cached and cached.get("hash") == file_hash:
+                file_chunks = [CodeChunk(**item) for item in cached.get("chunks", [])]
+                file_refs = [dict(item) for item in cached.get("references", [])]
+            else:
+                changed_paths.add(relative)
+                file_chunks, file_refs = self.parser.parse_file(path, self.root)
+            next_cache_files[relative] = {
+                "hash": file_hash,
+                "chunks": [chunk.__dict__ for chunk in file_chunks],
+                "references": file_refs,
+            }
             chunks.extend(file_chunks)
             references.extend(file_refs)
+
         self.graph = StructuralGraph()
         self.graph.add_chunks(chunks, references)
         self.graph.save(self.graph_path)
-        count = self.vectors.index(chunks)
+        self._save_cache({"version": 1, "files": next_cache_files})
+        count = self.vectors.index(
+            chunks,
+            changed_paths=changed_paths,
+            removed_paths=removed_paths,
+        )
         return {
             "root": str(self.root),
             "files": len({chunk.path for chunk in chunks}),
@@ -116,6 +146,27 @@ class AstraEngine:
         )
         report["root"] = str(self.root)
         return report
+
+    def _load_cache(self) -> dict:
+        if not self.cache_path.exists():
+            return {"version": 1, "files": {}}
+        try:
+            data = json.loads(self.cache_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {"version": 1, "files": {}}
+        if data.get("version") != 1 or not isinstance(data.get("files"), dict):
+            return {"version": 1, "files": {}}
+        return data
+
+    def _save_cache(self, cache: dict) -> None:
+        self.cache_path.write_text(json.dumps(cache, indent=2), encoding="utf-8")
+
+    def _file_hash(self, path: Path) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(8192), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
 
     def hybrid_context(self, query: str, limit: int = 5, expansion: int = 5) -> dict:
         results = self.search(query, limit)

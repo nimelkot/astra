@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from astra.core.engine import AstraEngine
@@ -246,3 +247,27 @@ def test_tether_reports_cycles(tmp_path: Path) -> None:
     assert report["summary"]["cycles"] >= 1
     assert report["status"] == "warn"
     assert any(item["type"] == "cycle_detected" for item in report["anomalies"])
+
+
+def test_index_cache_tracks_file_hash_changes(tmp_path: Path) -> None:
+    source_file = tmp_path / "app.py"
+    source_file.write_text("def greet():\n    return 'hi'\n", encoding="utf-8")
+    engine = AstraEngine(tmp_path)
+
+    first = engine.index()
+    assert first["files"] == 1
+
+    cache_path = tmp_path / ".astra_index_cache.json"
+    assert cache_path.exists()
+    first_cache = json.loads(cache_path.read_text(encoding="utf-8"))
+    first_hash = first_cache["files"]["app.py"]["hash"]
+
+    second = engine.index()
+    assert second["chunks"] == first["chunks"]
+    second_cache = json.loads(cache_path.read_text(encoding="utf-8"))
+    assert second_cache["files"]["app.py"]["hash"] == first_hash
+
+    source_file.write_text("def greet(name):\n    return f'hi {name}'\n", encoding="utf-8")
+    engine.index()
+    third_cache = json.loads(cache_path.read_text(encoding="utf-8"))
+    assert third_cache["files"]["app.py"]["hash"] != first_hash

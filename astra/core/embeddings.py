@@ -34,13 +34,24 @@ class VectorIndex:
                 CodeChunk(**item) for item in json.loads(self.data_path.read_text(encoding="utf-8"))
             ]
 
-    def index(self, chunks: list[CodeChunk]) -> int:
+    def index(
+        self,
+        chunks: list[CodeChunk],
+        changed_paths: set[str] | None = None,
+        removed_paths: set[str] | None = None,
+    ) -> int:
+        previous_chunks = self.chunks
         self.chunks = chunks
         self.data_path.write_text(
             json.dumps([chunk.__dict__ for chunk in chunks], indent=2), encoding="utf-8"
         )
         if os.getenv("ASTRA_ENABLE_EMBEDDINGS", "").lower() in {"1", "true", "yes"}:
-            self._try_build_chroma()
+            changed = changed_paths if changed_paths is not None else set()
+            removed = removed_paths if removed_paths is not None else set()
+            if changed or removed:
+                self._try_build_chroma_incremental(previous_chunks, changed, removed)
+            else:
+                self._try_build_chroma()
         return len(chunks)
 
     def _try_build_chroma(self) -> None:
@@ -59,6 +70,39 @@ class VectorIndex:
             )
         except Exception:
             pass
+
+    def _try_build_chroma_incremental(
+        self,
+        previous_chunks: list[CodeChunk],
+        changed_paths: set[str],
+        removed_paths: set[str],
+    ) -> None:
+        try:
+            import chromadb
+            from sentence_transformers import SentenceTransformer
+
+            client = chromadb.PersistentClient(path=str(self.directory / "chroma"))
+            collection = client.get_or_create_collection("astra_code")
+
+            stale_ids = [
+                chunk.id
+                for chunk in previous_chunks
+                if chunk.path in changed_paths or chunk.path in removed_paths
+            ]
+            if stale_ids:
+                collection.delete(ids=stale_ids)
+
+            changed_chunks = [chunk for chunk in self.chunks if chunk.path in changed_paths]
+            if changed_chunks:
+                model = SentenceTransformer("all-MiniLM-L6-v2")
+                collection.upsert(
+                    ids=[chunk.id for chunk in changed_chunks],
+                    documents=[chunk.source for chunk in changed_chunks],
+                    metadatas=[chunk.as_metadata() for chunk in changed_chunks],
+                    embeddings=model.encode([chunk.source for chunk in changed_chunks]).tolist(),
+                )
+        except Exception:
+            self._try_build_chroma()
 
     def search(self, query: str, limit: int = 10) -> list[SearchResult]:
         if os.getenv("ASTRA_ENABLE_EMBEDDINGS", "").lower() in {"1", "true", "yes"}:

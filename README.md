@@ -88,6 +88,8 @@ my-project/
 
 Run `astra index` again after the source code changes. Indexing replaces the previous graph and chunk index for that target directory.
 
+Astra uses a lightweight hash cache (`.astra_index_cache.json`) so repeated indexing only reparses files whose contents changed. Unchanged files reuse cached structural chunks and references.
+
 ## CLI
 
 ### Semantic search
