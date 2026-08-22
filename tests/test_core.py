@@ -35,8 +35,128 @@ def test_nested_text_files_are_indexed(tmp_path: Path) -> None:
     result = AstraEngine(tmp_path).index()
 
     assert result["files"] == 2
-    assert result["chunks"] == 2
+    assert result["chunks"] == 4
     assert AstraEngine(tmp_path).search("authenticate token")
+
+
+def test_typescript_callers_are_linked(tmp_path: Path) -> None:
+    (tmp_path / "service.ts").write_text(
+        "export function calculateTotal(items) {\n"
+        "  return items.length;\n"
+        "}\n"
+        "\n"
+        "export function checkout(items) {\n"
+        "  return calculateTotal(items);\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = AstraEngine(tmp_path).index()
+
+    assert result["files"] == 1
+    assert result["chunks"] == 3
+    callers = AstraEngine(tmp_path).callers("calculateTotal")
+    assert any(item["name"] == "checkout" for item in callers)
+
+
+def test_markdown_json_yaml_and_markup_are_structured(tmp_path: Path) -> None:
+    (tmp_path / "guide.md").write_text(
+        "# Overview\n"
+        "See [Config](config.yaml).\n"
+        "\n"
+        "## API\n"
+        "Details here.\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "config.yaml").write_text("service:\n  timeout: 30\n", encoding="utf-8")
+    (tmp_path / "schema.json").write_text('{"service": {"name": "astra"}}', encoding="utf-8")
+    (tmp_path / "index.html").write_text(
+        '<main id="dashboard"><section name="summary"></section></main>', encoding="utf-8"
+    )
+    (tmp_path / "diagram.xml").write_text(
+        '<root><node id="alpha"/></root>',
+        encoding="utf-8",
+    )
+
+    result = AstraEngine(tmp_path).index()
+
+    assert result["files"] == 5
+    assert result["chunks"] >= 11
+    assert AstraEngine(tmp_path).search("overview")
+    assert AstraEngine(tmp_path).search("timeout")
+    assert AstraEngine(tmp_path).search("dashboard")
+
+
+def test_bson_file_is_handled_without_crashing(tmp_path: Path) -> None:
+    (tmp_path / "sample.bson").write_bytes(b"\x16\x00\x00\x00\x02x\x00\x02\x00\x00\x00y\x00\x00")
+
+    result = AstraEngine(tmp_path).index()
+
+    assert result["files"] == 1
+    assert result["chunks"] >= 1
+
+
+def test_sql_structure_and_dependencies_are_extracted(tmp_path: Path) -> None:
+    (tmp_path / "schema.sql").write_text(
+        "CREATE TABLE users (id INT);\n"
+        "CREATE VIEW active_users AS SELECT * FROM users;\n",
+        encoding="utf-8",
+    )
+
+    result = AstraEngine(tmp_path).index()
+
+    assert result["files"] == 1
+    assert result["chunks"] == 3
+    callers = AstraEngine(tmp_path).callers("users")
+    assert any(item["name"] == "active_users" for item in callers)
+
+
+def test_shell_function_files_are_structured(tmp_path: Path) -> None:
+    (tmp_path / "deploy.sh").write_text(
+        "prepare() {\n"
+        "  echo ready\n"
+        "}\n"
+        "\n"
+        "run() {\n"
+        "  prepare\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = AstraEngine(tmp_path).index()
+
+    assert result["files"] == 1
+    assert result["chunks"] == 3
+    assert AstraEngine(tmp_path).search("prepare")
+
+
+def test_dart_matlab_and_visual_basic_are_structured(tmp_path: Path) -> None:
+    (tmp_path / "worker.dart").write_text(
+        "class Worker {\n"
+        "  int compute(int x) {\n"
+        "    return x + 1;\n"
+        "  }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "signal.m").write_text(
+        "function y = smoothSignal(x)\n"
+        "y = x;\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "module.vb").write_text(
+        "Public Function ComputeTotal(x As Integer) As Integer\n"
+        "    ComputeTotal = x + 1\n"
+        "End Function\n",
+        encoding="utf-8",
+    )
+
+    result = AstraEngine(tmp_path).index()
+
+    assert result["files"] == 3
+    assert result["chunks"] >= 6
+    assert AstraEngine(tmp_path).search("smooth signal")
+    assert AstraEngine(tmp_path).search("compute total")
 
 
 def test_python_nodes_with_non_list_body_do_not_crash(tmp_path: Path) -> None:
