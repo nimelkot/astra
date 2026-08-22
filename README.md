@@ -29,12 +29,6 @@ The MCP surface exposes four tools: `astra_index_repo`, `astra_semantic_search`,
 
 <p align="center"><em>Component map</em></p>
 
-## Brand Assets
-
-The canonical brand kit is included for repository pages, documentation, and integrations:
-
-The canonical brand assets are available as the [light icon](assets/astra-icon-light.png), [dark icon](assets/astra-icon-dark.png), [light logo](assets/astra-logo-light.png), [dark logo](assets/astra-logo-dark.png), [compact lockup](assets/astra-logo-compact.png), and [tagline lockup](assets/astra-wordmark-tagline.png). The [wide social banner](assets/astra-social-banner.png) is used at the top of this README.
-
 ## Install
 
 Python 3.10+ is required. Choose one of these installation paths.
