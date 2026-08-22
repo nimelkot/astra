@@ -39,6 +39,21 @@ The canonical brand assets are available as the [light icon](assets/astra-icon-l
 
 Python 3.10+ is required.
 
+Clone the repository and change into its root directory. The install command must be run from the directory that contains `pyproject.toml`:
+
+```bash
+git clone https://github.com/nimelkot/astra.git
+cd astra
+```
+
+On Windows PowerShell, verify that you are in the correct directory before installing:
+
+```powershell
+Get-ChildItem pyproject.toml
+```
+
+If that command reports that the file is missing, use `cd` to enter the cloned `astra` directory first. Do not run `pip install -e ".[dev]"` from `Downloads`, a parent folder, or a separate test folder.
+
 ```bash
 python -m venv .venv
 # Windows PowerShell
@@ -47,6 +62,22 @@ pip install -e ".[dev]"
 ```
 
 The first indexing run may download the Sentence Transformers model when the optional Chroma path is available. Astra still works without model access using its deterministic local lexical fallback.
+
+### Install directly from GitHub
+
+Users who only need the `astra` and `astra-mcp` commands can install the latest committed version directly from GitHub without cloning the repository:
+
+```powershell
+python -m pip install "git+https://github.com/nimelkot/astra.git"
+```
+
+For an isolated command-line installation, use `pipx`:
+
+```powershell
+pipx install "git+https://github.com/nimelkot/astra.git"
+```
+
+Use the clone-and-editable setup above when developing Astra or running its tests locally.
 
 ## CLI
 
