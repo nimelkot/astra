@@ -248,6 +248,159 @@ class StructuralGraph:
             },
         }
 
+    def fragility_hotspots(self, limit: int = 10, threshold: float = 75.0) -> dict[str, Any]:
+        relationship_graph = nx.DiGraph()
+        declaration_ids = [
+            node for node, data in self.graph.nodes(data=True) if data.get("kind") != "module"
+        ]
+        relationship_graph.add_nodes_from(declaration_ids)
+        for source, target, data in self.graph.edges(data=True):
+            if (
+                data.get("kind") in {"calls", "depends_on"}
+                and source in relationship_graph
+                and target in relationship_graph
+            ):
+                relationship_graph.add_edge(source, target)
+
+        pagerank = nx.pagerank(relationship_graph) if declaration_ids else {}
+        indegree = dict(relationship_graph.in_degree())
+        outdegree = dict(relationship_graph.out_degree())
+        max_indegree = max(indegree.values(), default=0)
+        max_pagerank = max(pagerank.values(), default=0.0)
+        max_complexity = max(
+            (
+                data.get("branches", 0) + data.get("nesting", 0) + data.get("parameters", 0)
+                for node, data in self.graph.nodes(data=True)
+                if node in relationship_graph
+            ),
+            default=0,
+        )
+        results: list[dict[str, Any]] = []
+        for node in declaration_ids:
+            data = self.graph.nodes[node]
+            incoming = indegree.get(node, 0)
+            outgoing = outdegree.get(node, 0)
+            centrality = (
+                ((incoming / max_indegree) if max_indegree else 0.0) * 0.5
+                + ((pagerank.get(node, 0.0) / max_pagerank) if max_pagerank else 0.0) * 0.5
+            ) * 100
+            raw_complexity = (
+                data.get("branches", 0) + data.get("nesting", 0) + data.get("parameters", 0)
+            )
+            complexity = (raw_complexity / max_complexity * 100) if max_complexity else 0.0
+            instability = (outgoing / (incoming + outgoing) * 100) if incoming + outgoing else 0.0
+            score = centrality * 0.4 + complexity * 0.4 + instability * 0.2
+            results.append(
+                {
+                    "id": node,
+                    "name": data.get("name", node),
+                    "kind": data.get("kind"),
+                    "path": data.get("path"),
+                    "start_line": data.get("start_line"),
+                    "end_line": data.get("end_line"),
+                    "incoming": incoming,
+                    "outgoing": outgoing,
+                    "centrality": round(centrality, 2),
+                    "branches": data.get("branches", 0),
+                    "nesting": data.get("nesting", 0),
+                    "parameters": data.get("parameters", 0),
+                    "complexity": round(complexity, 2),
+                    "instability": round(instability, 2),
+                    "score": round(score, 2),
+                    "classification": "critical" if score >= threshold else "watch",
+                }
+            )
+        results.sort(key=lambda item: (-item["score"], item["path"], item["start_line"] or 0))
+        return {
+            "threshold": threshold,
+            "formula": "centrality * 0.4 + complexity * 0.4 + instability * 0.2",
+            "hotspots": results[:limit],
+            "critical": sum(item["score"] >= threshold for item in results),
+            "analyzed": len(results),
+        }
+
+    def blast_radius(self, target: str, max_nodes: int = 200) -> dict[str, Any]:
+        seeds = self.resolve_nodes(target)
+        if not seeds:
+            return {"target": target, "found": False, "nodes": [], "files": []}
+
+        impacted: set[str] = set(seeds)
+        frontier = list(seeds)
+        while frontier and len(impacted) < max_nodes:
+            node = frontier.pop(0)
+            for parent in self.graph.predecessors(node):
+                edge = self.graph.edges[parent, node]
+                if edge.get("kind") not in {"calls", "depends_on"} or parent in impacted:
+                    continue
+                impacted.add(parent)
+                frontier.append(parent)
+                if len(impacted) >= max_nodes:
+                    break
+
+        nodes = [
+            {
+                "id": node,
+                "name": self.graph.nodes[node].get("name", node),
+                "kind": self.graph.nodes[node].get("kind"),
+                "path": self.graph.nodes[node].get("path"),
+                "start_line": self.graph.nodes[node].get("start_line"),
+                "end_line": self.graph.nodes[node].get("end_line"),
+                "distance": self._reverse_distance(seeds, node),
+            }
+            for node in impacted
+        ]
+        nodes.sort(key=lambda item: (item["distance"], item["path"], item["start_line"] or 0))
+        files = sorted({node["path"] for node in nodes if node.get("path")})
+        return {
+            "target": target,
+            "found": True,
+            "seeds": seeds,
+            "nodes": nodes,
+            "files": files,
+            "truncated": bool(frontier),
+        }
+
+    def refactor_order(self, target: str) -> dict[str, Any]:
+        seeds = self.resolve_nodes(target)
+        if not seeds:
+            return {"target": target, "found": False, "order": []}
+        impacted = set(seeds)
+        frontier = list(seeds)
+        while frontier:
+            node = frontier.pop(0)
+            for parent in self.graph.predecessors(node):
+                edge = self.graph.edges[parent, node]
+                if edge.get("kind") not in {"calls", "depends_on"} or parent in impacted:
+                    continue
+                impacted.add(parent)
+                frontier.append(parent)
+        dependency_graph = self.graph.subgraph(impacted).copy()
+        dependency_graph.remove_edges_from(
+            [
+                (source, child)
+                for source, child, data in dependency_graph.edges(data=True)
+                if data.get("kind") not in {"calls", "depends_on"}
+            ]
+        )
+        try:
+            ordered = list(nx.topological_sort(dependency_graph))
+        except nx.NetworkXUnfeasible:
+            ordered = sorted(impacted)
+        return {
+            "target": target,
+            "found": True,
+            "order": ordered,
+            "cycles": not nx.is_directed_acyclic_graph(dependency_graph),
+        }
+
+    def _reverse_distance(self, seeds: list[str], node: str) -> int:
+        distances = [
+            nx.shortest_path_length(self.graph, node, seed)
+            for seed in seeds
+            if nx.has_path(self.graph, node, seed)
+        ]
+        return min(distances, default=0)
+
     def _walk(self, seed: str, direction: str, depth: int, max_nodes: int) -> set[str]:
         if depth <= 0:
             return set()

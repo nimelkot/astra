@@ -203,6 +203,7 @@ class CodeParser:
                 name = node.name
                 chunk_id = f"{relative}:{start}:{name}"
                 symbols = sorted({n.id for n in ast.walk(node) if isinstance(n, ast.Name)})
+                complexity = self._python_complexity(node)
                 chunks.append(
                     CodeChunk(
                         chunk_id,
@@ -214,6 +215,9 @@ class CodeParser:
                         body,
                         ast.get_docstring(node) or "",
                         symbols,
+                        complexity["branches"],
+                        complexity["nesting"],
+                        complexity["parameters"],
                     )
                 )
                 for call in ast.walk(node):
@@ -231,6 +235,28 @@ class CodeParser:
                             )
 
         return chunks, references
+
+    def _python_complexity(self, node: ast.AST) -> dict[str, int]:
+        branch_types = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.IfExp, ast.Match)
+        branches = sum(isinstance(child, branch_types) for child in ast.walk(node))
+        parameters = 0
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            arguments = node.args
+            parameters = (
+                len(arguments.posonlyargs) + len(arguments.args) + len(arguments.kwonlyargs)
+            )
+            parameters += int(arguments.vararg is not None) + int(arguments.kwarg is not None)
+
+        def depth(current: ast.AST, current_depth: int = 0) -> int:
+            children = list(ast.iter_child_nodes(current))
+            if not children:
+                return current_depth
+            return max(
+                depth(child, current_depth + int(isinstance(current, branch_types)))
+                for child in children
+            )
+
+        return {"branches": branches, "nesting": depth(node), "parameters": parameters}
 
     def _parse_structured_file(
         self, relative: str, lines: list[str]

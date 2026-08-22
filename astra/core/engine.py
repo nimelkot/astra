@@ -55,7 +55,7 @@ class AstraEngine:
         self.graph = StructuralGraph()
         self.graph.add_chunks(chunks, references)
         self.graph.save(self.graph_path)
-        self._save_cache({"version": 1, "files": next_cache_files})
+        self._save_cache({"version": 2, "files": next_cache_files})
         count = self.vectors.index(
             chunks,
             changed_paths=changed_paths,
@@ -147,15 +147,62 @@ class AstraEngine:
         report["root"] = str(self.root)
         return report
 
+    def fragility_hotspots(self, limit: int = 10, threshold: float = 75.0) -> dict:
+        report = self.graph.fragility_hotspots(limit=limit, threshold=threshold)
+        report["root"] = str(self.root)
+        return report
+
+    def blast_radius(self, target: str, max_nodes: int = 200) -> dict:
+        report = self.graph.blast_radius(target, max_nodes=max_nodes)
+        report["root"] = str(self.root)
+        return report
+
+    def refactor_plan(self, target: str, replacement: str) -> dict:
+        order_report = self.graph.refactor_order(target)
+        if not order_report["found"]:
+            return {"target": target, "replacement": replacement, **order_report}
+
+        identifier = re.compile(rf"\b{re.escape(target)}\b")
+        chunks_by_id = {chunk.id: chunk for chunk in self.vectors.chunks}
+        changes: list[dict] = []
+        for node_id in order_report["order"]:
+            chunk = chunks_by_id.get(node_id)
+            if chunk is None:
+                continue
+            matches = list(identifier.finditer(chunk.source))
+            if matches:
+                changes.append(
+                    {
+                        "id": chunk.id,
+                        "path": chunk.path,
+                        "start_line": chunk.start_line,
+                        "end_line": chunk.end_line,
+                        "kind": chunk.kind,
+                        "name": chunk.name,
+                        "occurrences": len(matches),
+                        "before": chunk.source,
+                        "after": identifier.sub(replacement, chunk.source),
+                    }
+                )
+        return {
+            "root": str(self.root),
+            "target": target,
+            "replacement": replacement,
+            "order": order_report["order"],
+            "cycles": order_report["cycles"],
+            "changes": changes,
+            "apply": False,
+        }
+
     def _load_cache(self) -> dict:
         if not self.cache_path.exists():
-            return {"version": 1, "files": {}}
+            return {"version": 2, "files": {}}
         try:
             data = json.loads(self.cache_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
-            return {"version": 1, "files": {}}
-        if data.get("version") != 1 or not isinstance(data.get("files"), dict):
-            return {"version": 1, "files": {}}
+            return {"version": 2, "files": {}}
+        if data.get("version") != 2 or not isinstance(data.get("files"), dict):
+            return {"version": 2, "files": {}}
         return data
 
     def _save_cache(self, cache: dict) -> None:

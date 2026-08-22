@@ -143,6 +143,37 @@ def tether(
 
 
 @app.command()
+def fragility(
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+    limit: int = typer.Option(10, min=1, max=100),
+    threshold: float = typer.Option(75.0, min=0, max=100),
+) -> None:
+    """Rank fragile functions and classes using graph and AST metrics."""
+    result = _engine(path).fragility_hotspots(limit=limit, threshold=threshold)
+    console.print_json(json.dumps(result))
+
+
+@app.command("impact")
+def impact(
+    target: str = typer.Argument(..., help="Function, class, or declaration to analyze."),
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+    max_nodes: int = typer.Option(200, min=1, max=2000),
+) -> None:
+    """Report the upstream blast radius of changing a declaration."""
+    console.print_json(json.dumps(_engine(path).blast_radius(target, max_nodes)))
+
+
+@app.command("refactor-plan")
+def refactor_plan(
+    target: str = typer.Argument(..., help="Identifier to rename structurally."),
+    replacement: str = typer.Argument(..., help="Replacement identifier."),
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+) -> None:
+    """Preview an ordered, structural identifier rename without editing files."""
+    console.print_json(json.dumps(_engine(path).refactor_plan(target, replacement)))
+
+
+@app.command()
 def visualize(
     path: Path = typer.Argument(Path("."), exists=True, file_okay=False),
     output: Path | None = typer.Option(None, "--output", "-o"),
