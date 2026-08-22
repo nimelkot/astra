@@ -19,6 +19,10 @@ def test_index_search_and_callers(tmp_path: Path) -> None:
     assert AstraEngine(tmp_path).search("calculate total")
     callers = AstraEngine(tmp_path).callers("calculate_total")
     assert any(item["name"] == "checkout" for item in callers)
+    path = AstraEngine(tmp_path).path("checkout", "calculate_total")
+    assert path is not None
+    assert path["hops"] == 1
+    assert path["edges"][0]["kind"] == "calls"
 
 
 def test_invalid_python_is_skipped(tmp_path: Path) -> None:
@@ -109,6 +113,10 @@ def test_sql_structure_and_dependencies_are_extracted(tmp_path: Path) -> None:
     assert result["chunks"] == 3
     callers = AstraEngine(tmp_path).callers("users")
     assert any(item["name"] == "active_users" for item in callers)
+    path = AstraEngine(tmp_path).path("users", "active_users")
+    assert path is not None
+    assert path["hops"] == 1
+    assert path["edges"][0]["kind"] == "depends_on"
 
 
 def test_shell_function_files_are_structured(tmp_path: Path) -> None:
@@ -189,3 +197,11 @@ def test_visualization_contains_both_artifacts(tmp_path: Path) -> None:
     assert "Vector chunks" in html
     assert "astra-mark" in html
     assert "hello" in html
+
+
+def test_path_returns_none_when_missing_symbol(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text("def hello():\n    return 'world'\n", encoding="utf-8")
+    engine = AstraEngine(tmp_path)
+    engine.index()
+
+    assert engine.path("hello", "does_not_exist") is None

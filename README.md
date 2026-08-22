@@ -15,7 +15,7 @@ The constellation mark represents the relationships Astra discovers across a cod
 | Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
 | Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
 
-The MCP surface exposes four tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, and `astra_hybrid_context`.
+The MCP surface exposes six tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_hybrid_context`, and `astra_visualize`.
 
 <p align="center">
 	<img src="assets/astra-pipeline.png" alt="Astra indexing pipeline: parse, graph, index, and retrieve" width="900">
@@ -110,6 +110,21 @@ astra query callers calculate_total --path C:\Users\YourName\Downloads\my-projec
 
 The `callers` query uses the saved AST graph and reports matching caller nodes as JSON. The current CLI structural query type is `callers`.
 
+### Structural shortest path
+
+Find the shortest relationship path between two symbols:
+
+```powershell
+astra path "FastAPI" "ModelField" --path C:\Users\YourName\Downloads\my-project
+```
+
+Example output:
+
+```text
+Shortest path (3 hops):
+	FastAPI --uses--> DefaultPlaceholder <--references-- get_request_handler --references--> ModelField
+```
+
 ### Search behavior
 
 The default index is deterministic and works offline using local lexical matching. To enable Sentence Transformers and Chroma vector retrieval, set this before indexing and searching:
@@ -161,13 +176,14 @@ The vector chunks view provides searchable cards with file paths, symbols, line 
 
 Astra also exposes its engine as an official MCP server over stdio. Configure your MCP host to run `astra-mcp`; the server must be installed in the environment used by that host.
 
-The four native tools are:
+The native tools are:
 
 | Tool | Purpose |
 | --- | --- |
 | `astra_index_repo(path)` | Index a local repository. |
 | `astra_semantic_search(path, query, limit)` | Search indexed code chunks. |
 | `astra_get_callers(path, target, limit)` | Find callers through the structural graph. |
+| `astra_path(path, source, target, max_hops)` | Find the shortest structural path between two symbols. |
 | `astra_hybrid_context(path, query, limit, expansion)` | Combine semantic matches with graph expansion. |
 | `astra_visualize(path, output)` | Generate a local HTML graph report and return its file path and URL. |
 
