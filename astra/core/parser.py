@@ -43,7 +43,9 @@ class CodeParser:
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and any(
                     isinstance(p, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
                     for p in ast.walk(tree)
-                    if p is not node and hasattr(p, "body") and node in getattr(p, "body", [])
+                    if p is not node
+                    and isinstance(getattr(p, "body", None), list)
+                    and node in p.body
                 ):
                     kind = "method"
                 start = getattr(node, "lineno", 1)
