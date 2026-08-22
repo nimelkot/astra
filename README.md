@@ -121,8 +121,17 @@ astra path "FastAPI" "ModelField" --path C:\Users\YourName\Downloads\my-project
 Example output:
 
 ```text
+FastAPI
+fastapi/applications.py:65
+↳ DefaultPlaceholder
+fastapi/dependencies/models.py:21
+↳ get_request_handler()
+fastapi/routing.py:310
+↳ ModelField
+pydantic/fields.py:740
+
 Shortest path (3 hops):
-	FastAPI --uses--> DefaultPlaceholder <--references-- get_request_handler --references--> ModelField
+  FastAPI --uses--> DefaultPlaceholder <--references-- get_request_handler() --references--> ModelField
 ```
 
 ### Search behavior

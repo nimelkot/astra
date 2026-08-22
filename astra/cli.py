@@ -74,12 +74,37 @@ def shortest_path(
 
     nodes = result["nodes"]
     edges = result["edges"]
-    fragments = [nodes[0]["name"]]
-    for next_node, edge in zip(nodes[1:], edges):
-        if edge["from"] == nodes[len(fragments) - 1]["id"]:
-            fragments.append(f" --{edge['kind']}--> {next_node['name']}")
+
+    def _symbol_label(node: dict) -> str:
+        if node.get("kind") in {"function", "method"}:
+            return f"{node['name']}()"
+        return str(node["name"])
+
+    def _location_label(node: dict) -> str:
+        path_value = node.get("path")
+        line_value = node.get("start_line")
+        if path_value and isinstance(line_value, int):
+            return f"{path_value}:{line_value}"
+        if path_value:
+            return str(path_value)
+        return str(node["id"])
+
+    console.print(_symbol_label(nodes[0]))
+    console.print(_location_label(nodes[0]))
+
+    fragments = [_symbol_label(nodes[0])]
+    for index, (next_node, edge) in enumerate(zip(nodes[1:], edges)):
+        current_node = nodes[index]
+        relation = edge["kind"]
+        if edge["from"] == current_node["id"] and edge["to"] == next_node["id"]:
+            fragments.append(f" --{relation}--> {_symbol_label(next_node)}")
         else:
-            fragments.append(f" <--{edge['kind']}-- {next_node['name']}")
+            fragments.append(f" <--{relation}-- {_symbol_label(next_node)}")
+
+        console.print(f"↳ {_symbol_label(next_node)}")
+        console.print(_location_label(next_node))
+
+    console.print("")
     console.print(f"Shortest path ({result['hops']} hops):")
     console.print("  " + "".join(fragments))
 

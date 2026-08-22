@@ -23,6 +23,8 @@ def test_index_search_and_callers(tmp_path: Path) -> None:
     assert path is not None
     assert path["hops"] == 1
     assert path["edges"][0]["kind"] == "calls"
+    assert path["nodes"][0]["path"] == "app.py"
+    assert path["nodes"][0]["start_line"] == 4
 
 
 def test_invalid_python_is_skipped(tmp_path: Path) -> None:

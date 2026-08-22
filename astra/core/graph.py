@@ -75,7 +75,14 @@ class StructuralGraph:
         for node_id in best_path:
             data = self.graph.nodes[node_id]
             nodes.append(
-                {"id": node_id, "name": data.get("name", node_id), "kind": data.get("kind")}
+                {
+                    "id": node_id,
+                    "name": data.get("name", node_id),
+                    "kind": data.get("kind"),
+                    "path": data.get("path"),
+                    "start_line": data.get("start_line"),
+                    "end_line": data.get("end_line"),
+                }
             )
 
         edges: list[dict[str, str]] = []
