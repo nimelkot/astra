@@ -93,7 +93,6 @@ class CodeParser:
             for p in root.rglob("*")
             if p.is_file()
             and not any(
-                part.startswith(".") or part in EXCLUDED_DIRS
-                for part in p.relative_to(root).parts
+                part.startswith(".") or part in EXCLUDED_DIRS for part in p.relative_to(root).parts
             )
         )
