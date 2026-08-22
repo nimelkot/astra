@@ -286,6 +286,19 @@ args = []
 
 If the host cannot find commands from your shell, use the absolute executable path: `.venv\Scripts\astra-mcp.exe` on Windows or `.venv/bin/astra-mcp` on macOS/Linux. The server communicates over stdio, so do not redirect its stdout.
 
+### MCP tool orchestration
+
+All analysis and report tools automatically run the incremental index preflight before reading graph or vector artifacts. The hash cache makes unchanged files inexpensive, so an agent can call tools directly after source changes without constructing its own HTML or search index.
+
+For a codebase knowledge-graph visualization, use this sequence:
+
+```text
+1. astra_index_repo(path)
+2. astra_visualize(path)
+```
+
+For investigation before an edit, use `astra_hybrid_context` or `astra_dipper`, then `astra_impact` and `astra_get_fragility_hotspots`. For a rename, call `astra_refactor_plan` first, review its read-only changes and order, apply the approved edit through the host's editing capability, then call `astra_index_repo` and `astra_visualize` again. Agents should use Astra's returned paths, URLs, nodes, snippets, and JSON reports rather than recreating equivalent artifacts.
+
 ## Integrations
 
 ### Claude Desktop
