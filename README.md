@@ -158,6 +158,29 @@ astra tether --path C:\Users\YourName\Downloads\my-project --cycle-limit 25 --fa
 
 The report includes cycles, orphan declarations, high fan-out symbols, anomaly summaries, and a pass/warn status.
 
+### Tether CI gate policy
+
+Recommended policy for pull-request automation:
+
+- **Fail** when new structural cycles are introduced.
+- **Warn** when orphan-node count or high-fanout count increases beyond your baseline.
+- **Pass** when cycles do not increase and coupling metrics stay within threshold.
+
+A practical CI sequence:
+
+1. Index the repository snapshot for the PR branch.
+2. Run `astra tether` and store the JSON output.
+3. Compare `summary.cycles`, `summary.orphans`, and `summary.high_fanout` against your `main` baseline.
+4. Block merge only for hard-fail conditions (for example, cycle growth).
+5. Post warn-level findings as automated PR comments.
+
+Example command:
+
+```powershell
+astra index C:\Users\YourName\Downloads\my-project
+astra tether --path C:\Users\YourName\Downloads\my-project --cycle-limit 25 --fanout-threshold 12
+```
+
 ### Search behavior
 
 The default index is deterministic and works offline using local lexical matching. To enable Sentence Transformers and Chroma vector retrieval, set this before indexing and searching:
