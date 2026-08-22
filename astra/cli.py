@@ -110,6 +110,39 @@ def shortest_path(
 
 
 @app.command()
+def dipper(
+    query: str = typer.Argument(..., help="Concept, symbol, or identifier to scoop around."),
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+    limit: int = typer.Option(5, min=1, max=50),
+    parent_depth: int = typer.Option(1, min=0, max=8),
+    child_depth: int = typer.Option(1, min=0, max=8),
+    max_nodes: int = typer.Option(80, min=5, max=500),
+    max_source_chars: int = typer.Option(280, min=40, max=2000),
+) -> None:
+    """Extract a dependency-complete local subgraph for token-efficient LLM context."""
+    result = _engine(path).dipper(
+        query,
+        limit=limit,
+        parent_depth=parent_depth,
+        child_depth=child_depth,
+        max_nodes=max_nodes,
+        max_source_chars=max_source_chars,
+    )
+    console.print_json(json.dumps(result))
+
+
+@app.command()
+def tether(
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+    cycle_limit: int = typer.Option(20, min=1, max=200),
+    fanout_threshold: int = typer.Option(12, min=1, max=500),
+) -> None:
+    """Run structural health checks and report graph anomalies."""
+    result = _engine(path).tether(cycle_limit=cycle_limit, fanout_threshold=fanout_threshold)
+    console.print_json(json.dumps(result))
+
+
+@app.command()
 def visualize(
     path: Path = typer.Argument(Path("."), exists=True, file_okay=False),
     output: Path | None = typer.Option(None, "--output", "-o"),

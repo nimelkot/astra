@@ -15,7 +15,7 @@ The constellation mark represents the relationships Astra discovers across a cod
 | Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
 | Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
 
-The MCP surface exposes six tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_hybrid_context`, and `astra_visualize`.
+The MCP surface exposes eight tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_hybrid_context`, and `astra_visualize`.
 
 <p align="center">
 	<img src="assets/astra-pipeline.png" alt="Astra indexing pipeline: parse, graph, index, and retrieve" width="900">
@@ -138,6 +138,26 @@ Shortest path (3 hops):
 	<img src="docs/astra-path.svg" alt="astra path resolving a call path across the code graph" width="900">
 </p>
 
+### Dipper sub-graph scoop
+
+Extract a token-optimized, dependency-complete local sub-graph around a concept or symbol:
+
+```powershell
+astra dipper "checkout flow" --path C:\Users\YourName\Downloads\my-project --limit 6 --parent-depth 1 --child-depth 1
+```
+
+The command returns JSON with seeds, nodes, edges, and trimmed source snippets for direct LLM prompting.
+
+### Tether structural health sentinel
+
+Run graph-health checks to flag architectural drift risks:
+
+```powershell
+astra tether --path C:\Users\YourName\Downloads\my-project --cycle-limit 25 --fanout-threshold 12
+```
+
+The report includes cycles, orphan declarations, high fan-out symbols, anomaly summaries, and a pass/warn status.
+
 ### Search behavior
 
 The default index is deterministic and works offline using local lexical matching. To enable Sentence Transformers and Chroma vector retrieval, set this before indexing and searching:
@@ -197,6 +217,8 @@ The native tools are:
 | `astra_semantic_search(path, query, limit)` | Search indexed code chunks. |
 | `astra_get_callers(path, target, limit)` | Find callers through the structural graph. |
 | `astra_path(path, source, target, max_hops)` | Find the shortest structural path between two symbols. |
+| `astra_dipper(path, query, limit, parent_depth, child_depth, max_nodes, max_source_chars)` | Scoop a localized dependency-complete sub-graph for token-efficient LLM context. |
+| `astra_tether(path, cycle_limit, fanout_threshold)` | Run structural health checks and return architecture anomaly findings. |
 | `astra_hybrid_context(path, query, limit, expansion)` | Combine semantic matches with graph expansion. |
 | `astra_visualize(path, output)` | Generate a local HTML graph report and return its file path and URL. |
 
@@ -209,6 +231,28 @@ args = []
 ```
 
 If the host cannot find commands from your shell, use the absolute executable path: `.venv\Scripts\astra-mcp.exe` on Windows or `.venv/bin/astra-mcp` on macOS/Linux. The server communicates over stdio, so do not redirect its stdout.
+
+## Integrations
+
+### Claude Desktop
+
+Use the server over stdio (`astra-mcp`) and call tools like `astra_dipper` and `astra_tether` from Claude. A complete setup guide is available in [docs/claude-desktop.md](docs/claude-desktop.md).
+
+### Gemini
+
+Gemini can consume Astra through any MCP-compatible bridge or local tool host that supports stdio MCP servers. Register `astra-mcp`, then use `astra_dipper` to scoop focused context and `astra_tether` for PR health checks.
+
+### Codex CLI
+
+Codex CLI can run Astra directly from terminal commands:
+
+```powershell
+astra index C:\Users\YourName\Downloads\my-project
+astra dipper "payment retry flow" --path C:\Users\YourName\Downloads\my-project
+astra tether --path C:\Users\YourName\Downloads\my-project
+```
+
+For MCP-based Codex workflows, point your MCP client config to `astra-mcp` and invoke `astra_path`, `astra_dipper`, and `astra_tether` as needed.
 
 ## Development
 
