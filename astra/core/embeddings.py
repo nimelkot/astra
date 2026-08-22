@@ -10,10 +10,12 @@ from pathlib import Path
 from .models import CodeChunk, SearchResult
 
 _TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9]*")
+_CAMEL_BOUNDARY_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 
 
 def _tokens(value: str) -> list[str]:
-    return [token.lower() for token in _TOKEN_RE.findall(value.replace("_", " "))]
+    normalized = _CAMEL_BOUNDARY_RE.sub(" ", value.replace("_", " "))
+    return [token.lower() for token in _TOKEN_RE.findall(normalized)]
 
 
 class VectorIndex:

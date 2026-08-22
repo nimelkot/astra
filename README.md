@@ -10,7 +10,7 @@ The constellation mark represents the relationships Astra discovers across a cod
 
 | Component | Role | Output |
 | --- | --- | --- |
-| AST parser | Reads Python declarations, docstrings, symbols, and calls without executing project code. | Code chunks and references |
+| AST and text parser | Reads Python declarations, docstrings, symbols, and calls; indexes other UTF-8 text files as file-level chunks. | Code chunks and references |
 | Structural graph | Builds directed NetworkX relationships between modules, declarations, and callers. | `.astra_graph.json` |
 | Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
 | Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
@@ -64,13 +64,14 @@ If `Get-ChildItem pyproject.toml` cannot find the file, you are not in the Astra
 
 ## Quick start
 
-Index a Python project first. Replace the example path with the folder you want Astra to analyze:
+Index a project first. Replace the example path with the folder you want Astra to analyze:
 
 ```powershell
 astra index C:\Users\YourName\Downloads\my-project
 ```
 
-The command recursively scans `.py` files without importing or executing them. It writes the index beside the target code:
+The command recursively scans nested folders for UTF-8 text files without importing or executing them. Valid Python files receive AST-level declarations and call relationships; other text-based source, configuration, markup, and documentation files receive searchable file-level chunks. Binary files, files larger than 2 MB, and generated or dependency directories such as `.git`, `.venv`, `node_modules`, and `.astra_vectors` are skipped.
+| AST and text parser | Reads Python declarations, docstrings, symbols, and calls; indexes other UTF-8 text files as file-level chunks. | Code chunks and references |
 
 ```text
 my-project/
