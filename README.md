@@ -2,7 +2,7 @@
 	<img src="assets/astra-social-banner.png" alt="Astra: local code intelligence for AI agents" width="100%">
 </p>
 
-Astra is a local code intelligence service for AI agents. It parses repository files into a structural NetworkX graph and a searchable local code-chunk index, with AST-level enrichment for valid Python files. The same engine is available through the `astra` CLI and the official MCP Python SDK.
+Astra is a local code intelligence service for AI agents. It parses repository files into a structural NetworkX graph and a searchable local code-chunk index, with full Python AST analysis and AST-compatible structural extraction across common source, markup, and configuration formats. The same engine is available through the `astra` CLI and the official MCP Python SDK.
 
 ## Architecture
 
@@ -10,7 +10,7 @@ The constellation mark represents the relationships Astra discovers across a cod
 
 | Component | Role | Output |
 | --- | --- | --- |
-| AST and text parser | Reads Python declarations, docstrings, symbols, and calls; indexes other readable project files as file-level chunks. | Code chunks and references |
+| AST and text parser | Uses Python AST for `.py` files and language-aware structural extraction for common source, markup, and data formats; indexes other readable files as file-level chunks. | Code chunks and references |
 | Structural graph | Builds directed NetworkX relationships between modules, declarations, and callers. | `.astra_graph.json` |
 | Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
 | Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
@@ -39,6 +39,12 @@ This is the simplest option for using Astra. It installs the `astra` and `astra-
 
 ```powershell
 python -m pip install "git+https://github.com/nimelkot/astra.git"
+```
+
+To upgrade an existing installation to the latest GitHub version:
+
+```powershell
+python -m pip install --upgrade --force-reinstall "git+https://github.com/nimelkot/astra.git"
 ```
 
 For an isolated command-line installation, use `pipx`:
@@ -70,7 +76,7 @@ Index a project first. Replace the example path with the folder you want Astra t
 astra index C:\Users\YourName\Downloads\my-project
 ```
 
-The command recursively scans nested folders for files without importing or executing them. Valid Python files receive AST-level declarations and call relationships; other readable source, configuration, markup, and documentation files receive searchable file-level chunks. Binary files, unsupported encodings, files larger than 2 MB, and generated or dependency directories such as `.git`, `.venv`, `node_modules`, and `.astra_vectors` are skipped.
+The command recursively scans nested folders for files without importing or executing them. Valid Python files receive AST-level declarations and call relationships. Common source file types (`.js`, `.jsx`, `.ts`, `.tsx`, `.go`, `.java`, `.cs`, `.c`, `.cc`, `.cpp`, `.h`, `.hpp`, `.rs`, `.php`, `.swift`, `.kt`, `.kts`, `.rb`, `.dart`, `.scala`, `.pl`, `.r`, `.m`, `.lua`, `.vb`, `.vbs`, `.bas`, `.ps1`, `.sh`, `.bash`, `.zsh`, `.bat`, `.cmd`, `.proto`, `.graphql`, `.gql`) receive structural declaration and call extraction into the same graph format. SQL files (`.sql`) receive table/view/function/procedure/trigger extraction and dependency links from statements such as `FROM` and `JOIN`. Markdown (`.md`, `.markdown`, `.mdx`) gets section-level extraction, HTML/XML gets element-level extraction, JSON/JSONC and YAML/TOML/INI-style configs get key-level extraction, and BSON files are handled safely with optional key extraction when a BSON decoder is available. Other readable files remain searchable as file-level chunks. Binary files, unsupported encodings, files larger than 2 MB, and generated or dependency directories such as `.git`, `.venv`, `node_modules`, and `.astra_vectors` are skipped.
 
 For a complete support matrix, see [docs/supported-file-types.md](docs/supported-file-types.md).
 
