@@ -115,6 +115,27 @@ astra search "rate limiting and retries" --path C:\Users\YourName\Downloads\my-p
 
 The first embedding-enabled run may download the `all-MiniLM-L6-v2` model. If model access or the vector store is unavailable, Astra falls back to the local search implementation.
 
+### Visualize an index
+
+After indexing, generate a local HTML report for the target folder:
+
+```powershell
+astra visualize C:\Users\YourName\Downloads\my-project
+```
+
+This writes `.astra_visualization.html` into the target folder. Open that file in a browser to inspect two views:
+
+- **Structural graph**: interactive modules, classes, functions, methods, and definition/call edges from `.astra_graph.json`.
+- **Vector chunks**: searchable file and symbol cards from `.astra_vectors/chunks.json`, with expandable source previews.
+
+You can choose a different output path:
+
+```powershell
+astra visualize C:\Users\YourName\Downloads\my-project --output C:\Users\YourName\Desktop\astra-report.html
+```
+
+The report uses the Vis Network browser library from its CDN for the structural canvas. The vector view and generated data remain local; an internet connection is only needed to load the interactive graph library when opening the report.
+
 ## MCP
 
 Astra also exposes its engine as an official MCP server over stdio. Configure your MCP host to run `astra-mcp`; the server must be installed in the environment used by that host.

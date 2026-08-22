@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.table import Table
 
 from .core.engine import AstraEngine
+from .core.visualization import VisualizationError, write_visualization
 
 app = typer.Typer(help="Hybrid structural and semantic codebase intelligence.")
 console = Console()
@@ -56,6 +57,19 @@ def query(
     if type_.lower() != "callers":
         raise typer.BadParameter("TYPE must be callers")
     console.print_json(json.dumps(engine.callers(target)))
+
+
+@app.command()
+def visualize(
+    path: Path = typer.Argument(Path("."), exists=True, file_okay=False),
+    output: Path | None = typer.Option(None, "--output", "-o"),
+) -> None:
+    """Render generated graph and vector artifacts as a local HTML report."""
+    try:
+        destination = write_visualization(path, output)
+    except VisualizationError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    console.print(f"Visualization written to {destination}")
 
 
 if __name__ == "__main__":

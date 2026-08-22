@@ -8,3 +8,4 @@ build/
 *.egg-info/
 .astra_vectors/
 .astra_graph.json
+.astra_visualization.html
