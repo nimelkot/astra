@@ -1,4 +1,4 @@
-<svg viewBox="0 0 900 360" width="900" height="360" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" role="img" aria-label="astra path resolving a seven-hop call path traced along the Big Dipper">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" width="900" height="360" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" role="img" aria-label="astra path resolving a seven-hop call path traced along the Big Dipper">
     <defs>
 <style>
 .f { opacity: 0; animation-duration: 11s; animation-iteration-count: infinite; }
@@ -30,7 +30,7 @@
 @keyframes curv { 0%,2.0%{opacity:0} 2.27%,52%{opacity:1} 55%,100%{opacity:0} }
 .cur { animation: curx 11s infinite steps(32, end), blink 1.05s infinite step-end; }
 @keyframes curx { 0%,2.27%{x:33.5px} 14.09%,94.55%{x:245.3px} 100%{x:33.5px} }
-@keyframes blink { 0%,50%{opacity:0.9}
+@keyframes blink { 0%,50%{opacity:0.9} 50.01%,100%{opacity:0.1} }
 </style>
       <linearGradient id="apbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#161826"></stop><stop offset="1" stop-color="#1b1d2c"></stop></linearGradient>
       <radialGradient id="apglow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#9184d9" stop-opacity="0.32"></stop><stop offset="1" stop-color="#9184d9" stop-opacity="0"></stop></radialGradient>
