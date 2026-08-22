@@ -1,23 +1,5 @@
-# Astra
-
 <p align="center">
-	<img src="assets/astra-logo-dark.png" alt="Astra logo" width="530">
-</p>
-
-<p align="center">
-	<strong>Local code intelligence for AI agents.</strong><br>
-	Parse Python into a structural graph and searchable code index, then query the same engine through the CLI or MCP.
-</p>
-
-<p align="center">
-	<a href="#install">Install</a> ·
-	<a href="#cli">CLI</a> ·
-	<a href="#mcp">MCP</a> ·
-	<a href="#architecture">Architecture</a>
-</p>
-
-<p align="center">
-	<img src="assets/astra-icon-dark.png" alt="Astra constellation icon on a dark background" width="96">
+	<img src="assets/astra-social-banner.png" alt="Astra: local code intelligence for AI agents" width="100%">
 </p>
 
 Astra is a local code intelligence service for AI agents. It parses Python code into a structural NetworkX graph and a searchable local code-chunk index. The same engine is available through the `astra` CLI and the official MCP Python SDK.
@@ -51,16 +33,7 @@ The MCP surface exposes four tools: `astra_index_repo`, `astra_semantic_search`,
 
 The canonical brand kit is included for repository pages, documentation, and integrations:
 
-<table>
-	<tr>
-		<td align="center"><img src="assets/astra-icon-light.png" alt="Light Astra icon" width="120"><br><sub>Icon · light</sub></td>
-		<td align="center"><img src="assets/astra-icon-dark.png" alt="Dark Astra icon" width="120"><br><sub>Icon · dark</sub></td>
-		<td align="center"><img src="assets/astra-logo-light.png" alt="Light Astra logo" width="360"><br><sub>Logo · light</sub></td>
-		<td align="center"><img src="assets/astra-logo-dark.png" alt="Dark Astra logo" width="360"><br><sub>Logo · dark</sub></td>
-	</tr>
-</table>
-
-The [2:1 social preview](assets/astra-social-preview.png) is the primary repository cover. The [wide social banner](assets/astra-social-banner.png), [compact lockup](assets/astra-logo-compact.png), and [tagline lockup](assets/astra-wordmark-tagline.png) are available for other surfaces.
+The canonical brand assets are available as the [light icon](assets/astra-icon-light.png), [dark icon](assets/astra-icon-dark.png), [light logo](assets/astra-logo-light.png), [dark logo](assets/astra-logo-dark.png), [compact lockup](assets/astra-logo-compact.png), and [tagline lockup](assets/astra-wordmark-tagline.png). The [wide social banner](assets/astra-social-banner.png) is used at the top of this README.
 
 ## Install
 
@@ -113,3 +86,7 @@ ruff check .
 ```
 
 Astra never imports or executes files it indexes. Parsing failures are skipped and reported only through the resulting counts, which keeps indexing useful for partially broken working trees.
+
+<p align="center">
+	<img src="assets/astra-social-preview.png" alt="Astra social preview" width="100%">
+</p>
