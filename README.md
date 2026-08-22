@@ -136,6 +136,20 @@ astra visualize C:\Users\YourName\Downloads\my-project --output C:\Users\YourNam
 
 The report uses the Vis Network browser library from its CDN for the structural canvas. The vector view and generated data remain local; an internet connection is only needed to load the interactive graph library when opening the report.
 
+### Visualization examples
+
+The structural graph view renders connected modules, declarations, and relationships across the indexed project:
+
+<p align="center">
+	<img src="assets/astra_viz_screenshot_2.png" alt="Astra structural graph visualization showing connected code nodes" width="100%">
+</p>
+
+The vector chunks view provides searchable cards with file paths, symbols, line ranges, and expandable source previews:
+
+<p align="center">
+	<img src="assets/astra_viz_screenshot_1.png" alt="Astra vector chunks visualization showing searchable source cards" width="100%">
+</p>
+
 ## MCP
 
 Astra also exposes its engine as an official MCP server over stdio. Configure your MCP host to run `astra-mcp`; the server must be installed in the environment used by that host.
