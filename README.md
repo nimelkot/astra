@@ -134,6 +134,10 @@ Shortest path (3 hops):
   FastAPI --uses--> DefaultPlaceholder <--references-- get_request_handler() --references--> ModelField
 ```
 
+<p align="center">
+	<img src="docs/astra-path.svg" alt="astra path resolving a call path across the code graph" width="900">
+</p>
+
 ### Search behavior
 
 The default index is deterministic and works offline using local lexical matching. To enable Sentence Transformers and Chroma vector retrieval, set this before indexing and searching:
