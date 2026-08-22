@@ -207,3 +207,42 @@ def test_path_returns_none_when_missing_symbol(tmp_path: Path) -> None:
     engine.index()
 
     assert engine.path("hello", "does_not_exist") is None
+
+
+def test_dipper_returns_local_context_scoop(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(
+        "def calculate_total(items):\n"
+        "    return sum(items)\n"
+        "\n"
+        "def checkout(items):\n"
+        "    return calculate_total(items)\n",
+        encoding="utf-8",
+    )
+    engine = AstraEngine(tmp_path)
+    engine.index()
+
+    scoop = engine.dipper("calculate_total", limit=3, parent_depth=1, child_depth=1)
+
+    assert scoop["summary"]["nodes"] >= 2
+    assert any(node["name"] == "calculate_total" for node in scoop["nodes"])
+    assert any(edge["kind"] in {"calls", "defines"} for edge in scoop["edges"])
+    assert any(snippet["name"] == "calculate_total" for snippet in scoop["snippets"])
+
+
+def test_tether_reports_cycles(tmp_path: Path) -> None:
+    (tmp_path / "loop.py").write_text(
+        "def a():\n"
+        "    return b()\n"
+        "\n"
+        "def b():\n"
+        "    return a()\n",
+        encoding="utf-8",
+    )
+    engine = AstraEngine(tmp_path)
+    engine.index()
+
+    report = engine.tether(cycle_limit=10)
+
+    assert report["summary"]["cycles"] >= 1
+    assert report["status"] == "warn"
+    assert any(item["type"] == "cycle_detected" for item in report["anomalies"])

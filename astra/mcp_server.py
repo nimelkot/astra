@@ -12,7 +12,7 @@ mcp = MCPServer("Astra", version="0.1.0")
 
 @mcp.tool()
 def astra_index_repo(path: str) -> dict:
-    """Index a local Python code directory into Astra's graph and vector store."""
+    """Index a local repository into Astra's graph and vector store."""
     return AstraEngine(Path(path)).index()
 
 
@@ -38,6 +38,36 @@ def astra_hybrid_context(path: str, query: str, limit: int = 5, expansion: int =
 def astra_path(path: str, source: str, target: str, max_hops: int = 12) -> dict | None:
     """Find the shortest structural path between two symbols."""
     return AstraEngine(Path(path)).path(source, target, max_hops)
+
+
+@mcp.tool()
+def astra_dipper(
+    path: str,
+    query: str,
+    limit: int = 5,
+    parent_depth: int = 1,
+    child_depth: int = 1,
+    max_nodes: int = 80,
+    max_source_chars: int = 280,
+) -> dict:
+    """Extract a localized dependency-complete subgraph for LLM context."""
+    return AstraEngine(Path(path)).dipper(
+        query,
+        limit=limit,
+        parent_depth=parent_depth,
+        child_depth=child_depth,
+        max_nodes=max_nodes,
+        max_source_chars=max_source_chars,
+    )
+
+
+@mcp.tool()
+def astra_tether(path: str, cycle_limit: int = 20, fanout_threshold: int = 12) -> dict:
+    """Run graph health checks and flag structural anomalies."""
+    return AstraEngine(Path(path)).tether(
+        cycle_limit=cycle_limit,
+        fanout_threshold=fanout_threshold,
+    )
 
 
 @mcp.tool()
