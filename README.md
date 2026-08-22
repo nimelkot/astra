@@ -263,9 +263,27 @@ If the host cannot find commands from your shell, use the absolute executable pa
 
 Use the server over stdio (`astra-mcp`) and call tools like `astra_dipper` and `astra_tether` from Claude. A complete setup guide is available in [docs/claude-desktop.md](docs/claude-desktop.md).
 
-### Gemini
+### Claude CLI
+
+Register Astra with Claude Code from your terminal:
+
+```powershell
+claude mcp add --transport stdio astra -- astra-mcp
+```
+
+Verify the server with `claude mcp list`, then start Claude Code and ask it to use Astra's MCP tools. If `astra-mcp` is not on your `PATH`, replace it with the absolute path to `.venv\Scripts\astra-mcp.exe` on Windows or `.venv/bin/astra-mcp` on macOS/Linux.
+
+### Gemini CLI
 
 Gemini can consume Astra through any MCP-compatible bridge or local tool host that supports stdio MCP servers. Register `astra-mcp`, then use `astra_dipper` to scoop focused context and `astra_tether` for PR health checks.
+
+Register Astra with Gemini CLI:
+
+```powershell
+gemini mcp add astra astra-mcp
+```
+
+Verify the server with `gemini mcp list`, then start Gemini CLI and ask it to index or search your project with Astra. If `astra-mcp` is not on your `PATH`, use the absolute executable path as the command instead.
 
 ### Codex CLI
 
