@@ -1,5 +1,5 @@
 <p align="center">
-	<img src="assets/astra-logo.svg" alt="astra logo" width="246">
+	<img src="assets/astra-logo-dark.png" alt="astra logo" width="325">
 </p>
 
 <p align="center">Local code intelligence for AI agents.</p>
@@ -10,7 +10,7 @@ Astra is a local code intelligence service for AI agents. It parses Python code 
 
 ## Components
 
-The repository uses a compact constellation mark to represent the relationships Astra discovers across a codebase. The supplied brand assets are available as [the icon](assets/astra-icon.svg) and [the lowercase logo lockup](assets/astra-logo.svg).
+The repository uses a constellation mark to represent the relationships Astra discovers across a codebase. The canonical brand assets are available as [the light icon](assets/astra-icon-light.png), [the dark icon](assets/astra-icon-dark.png), [the light logo](assets/astra-logo-light.png), and [the dark logo](assets/astra-logo-dark.png). The [social preview](assets/astra-social-preview.png) is the 2:1 repository cover, and the [wide social banner](assets/astra-social-banner.png) is available for other sharing contexts.
 
 | Component | Role | Output |
 | --- | --- | --- |
@@ -20,6 +20,10 @@ The repository uses a compact constellation mark to represent the relationships 
 | Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
 
 The MCP surface exposes four tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, and `astra_hybrid_context`.
+
+![Astra indexing pipeline](assets/astra-pipeline.png)
+
+The system moves through four stages: parse Python files without executing them, build the structural graph, index code chunks, and retrieve semantic matches with graph expansion. The [component map](assets/astra-components.png) shows how the CLI and MCP host connect to the shared engine and its on-disk artifacts.
 
 ## Install
 
