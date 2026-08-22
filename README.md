@@ -148,6 +148,7 @@ The four native tools are:
 | `astra_semantic_search(path, query, limit)` | Search indexed code chunks. |
 | `astra_get_callers(path, target, limit)` | Find callers through the structural graph. |
 | `astra_hybrid_context(path, query, limit, expansion)` | Combine semantic matches with graph expansion. |
+| `astra_visualize(path, output)` | Generate a local HTML graph report and return its file path and URL. |
 
 The repository includes [.vscode/mcp.json](.vscode/mcp.json) for VS Code MCP clients. For other hosts, register the server in the host's configuration:
 

@@ -48,4 +48,5 @@ def test_visualization_contains_both_artifacts(tmp_path: Path) -> None:
     html = output.read_text(encoding="utf-8")
     assert "Structural graph" in html
     assert "Vector chunks" in html
+    assert "astra-mark" in html
     assert "hello" in html

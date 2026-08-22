@@ -5,6 +5,7 @@ from pathlib import Path
 from mcp.server import MCPServer
 
 from .core.engine import AstraEngine
+from .core.visualization import write_visualization
 
 mcp = MCPServer("Astra", version="0.1.0")
 
@@ -31,6 +32,13 @@ def astra_get_callers(path: str, target: str, limit: int = 50) -> list[dict]:
 def astra_hybrid_context(path: str, query: str, limit: int = 5, expansion: int = 5) -> dict:
     """Combine semantic matches with structural expansion."""
     return AstraEngine(Path(path)).hybrid_context(query, limit, expansion)
+
+
+@mcp.tool()
+def astra_visualize(path: str, output: str | None = None) -> dict:
+    """Generate a local HTML visualization and return its path and file URL."""
+    report = write_visualization(Path(path), output)
+    return {"path": str(report), "url": report.as_uri()}
 
 
 def main() -> None:
