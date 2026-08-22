@@ -39,6 +39,21 @@ The canonical brand assets are available as the [light icon](assets/astra-icon-l
 
 Python 3.10+ is required.
 
+Clone the repository and change into its root directory. The install command must be run from the directory that contains `pyproject.toml`:
+
+```bash
+git clone https://github.com/nimelkot/astra.git
+cd astra
+```
+
+On Windows PowerShell, verify that you are in the correct directory before installing:
+
+```powershell
+Get-ChildItem pyproject.toml
+```
+
+If that command reports that the file is missing, use `cd` to enter the cloned `astra` directory first. Do not run `pip install -e ".[dev]"` from `Downloads`, a parent folder, or a separate test folder.
+
 ```bash
 python -m venv .venv
 # Windows PowerShell
