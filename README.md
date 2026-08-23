@@ -43,11 +43,19 @@ This is the simplest option for using Astra. It installs the `astra` and `astra-
 python -m pip install "git+https://github.com/nimelkot/astra.git"
 ```
 
-To upgrade an existing installation to the latest GitHub version:
+To upgrade only Astra without reinstalling its already-satisfied dependencies:
 
 ```powershell
-python -m pip install --upgrade --force-reinstall "git+https://github.com/nimelkot/astra.git"
+python -m pip install --upgrade --no-deps "git+https://github.com/nimelkot/astra.git"
 ```
+
+`--no-deps` is the targeted update option: it updates the Astra package and its `astra`/`astra-mcp` entry points while skipping dependency resolution and downloads. Use the regular upgrade command instead if Astra's dependency requirements have changed or this is a new environment:
+
+```powershell
+python -m pip install --upgrade "git+https://github.com/nimelkot/astra.git"
+```
+
+Avoid `--force-reinstall` for routine updates. It reinstalls packages even when the required versions are already present and is only useful when the installation itself is damaged.
 
 For an isolated command-line installation, use `pipx`:
 
@@ -67,6 +75,15 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 ```
+
+For a checkout that already has Astra installed in editable mode, the fastest update is to pull the latest source and refresh only when dependencies changed:
+
+```powershell
+git pull
+python -m pip install -e . --no-deps
+```
+
+The editable package points directly at the checkout, so Python code changes are available immediately. Run the install command again only when `pyproject.toml` or dependency versions change.
 
 If `Get-ChildItem pyproject.toml` cannot find the file, you are not in the Astra repository root yet. The folder you want to analyze can be anywhere; it does not need to be inside the Astra checkout.
 
