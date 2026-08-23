@@ -295,6 +295,8 @@ The native tools are:
 | `astra_hybrid_context(path, query, limit, expansion)` | Combine semantic matches with graph expansion. |
 | `astra_visualize(path, output)` | Generate a local HTML graph report and return its file path and URL. |
 
+See [docs/tool-cookbook.md](docs/tool-cookbook.md) for example CLI and MCP calls, representative output, use cases, and recommended agent workflows for every tool.
+
 The repository includes [.vscode/mcp.json](.vscode/mcp.json) for VS Code MCP clients. For other hosts, register the server in the host's configuration:
 
 ```toml
