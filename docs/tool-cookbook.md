@@ -281,7 +281,50 @@ Example output shape:
 
 **Interpretation:** Scores range from 0 to 100 relative to the indexed workspace. `critical` means the score meets the supplied threshold; `watch` means it is below it. Compare the component values to decide whether risk comes from callers, logic complexity, or coupling rather than acting on the composite score alone.
 
-### 8. `astra_impact`
+### 8. `astra_star_nodes`
+
+**Use case:** Find highly depended-on declarations that anchor major areas of the knowledge graph and deserve extra change control.
+
+CLI:
+
+```powershell
+astra star-nodes --path C:\path\to\project --limit 20 --threshold 60
+```
+
+MCP:
+
+```text
+astra_star_nodes({
+  "path": "C:\\path\\to\\project",
+  "limit": 20,
+  "threshold": 60
+})
+```
+
+Example output shape:
+
+```json
+{
+  "threshold": 60,
+  "stars": [{
+    "name": "ApplicationService",
+    "path": "src/application.py",
+    "incoming": 18,
+    "outgoing": 4,
+    "pagerank": 0.0412,
+    "score": 82.6,
+    "is_star": true
+  }],
+  "star_count": 3,
+  "analyzed": 146
+}
+```
+
+**Interpretation:** `incoming` measures direct structural dependency pressure, while `pagerank` captures broader graph importance. `score` normalizes both signals within the indexed repository. `is_star` means the score meets the requested threshold; it does not imply the node is defective. Review star nodes before API changes, deletion, or broad refactors because many declarations may rely on them.
+
+In `astra visualize`, star nodes use a star shape. The right-side intelligence rail can isolate star nodes, switch to community/subgraph coloring, show hotspots, hide node kinds or communities, and toggle edge labels.
+
+### 9. `astra_impact`
 
 **Use case:** Calculate the upstream blast radius before editing a function or class, including affected files.
 
@@ -315,7 +358,7 @@ Example output shape:
 
 **Interpretation:** `found` confirms the target resolved. `distance` is the number of incoming graph steps from the target, `files` is the review scope, and `truncated` warns that `max_nodes` limited the result. A missing target should be resolved before editing.
 
-### 9. `astra_refactor_plan`
+### 10. `astra_refactor_plan`
 
 **Use case:** Preview a graph-ordered identifier rename before an agent applies an edit.
 
@@ -357,7 +400,7 @@ The plan is intentionally read-only. Review it, apply an approved syntax-aware e
 
 **Interpretation:** `order` is the recommended dependency order, `changes` contains source previews, and `occurrences` counts identifier-boundary matches in each chunk. `cycles: true` means no perfect topological order exists and the returned order requires human review. Never treat `apply: false` as an applied rename.
 
-### 10. `astra_visualize`
+### 11. `astra_visualize`
 
 **Use case:** Inspect the indexed graph, vector chunks, Dipper context, and Tether anomalies in a local HTML report.
 
@@ -391,7 +434,7 @@ The tool refreshes the incremental index and renders Astra's artifacts. Agents s
 
 ## Targeted Testing
 
-### 11. `astra_test_map`
+### 12. `astra_test_map`
 
 **Use case:** Discover which tests reach each source declaration and identify untested reachable code.
 
@@ -423,7 +466,7 @@ Example output shape:
 
 **Interpretation:** `tested: true` means at least one indexed test declaration reaches the source node through graph edges. `untested` is a prioritization signal, not a code-coverage percentage. Review the `tests` IDs and remember dynamically discovered tests may not appear in the structural graph.
 
-### 12. `astra_affected_tests`
+### 13. `astra_affected_tests`
 
 **Use case:** Convert changed files from a pull request into the smallest graph-selected test file set.
 
@@ -455,7 +498,7 @@ Example output shape:
 
 **Interpretation:** `test_files` is the minimal graph-selected file list to pass to pytest. `uncovered_changed_nodes` identifies changed declarations with no discovered test path, which should trigger focused manual or new-test work. An empty test list means no structural test dependency was found.
 
-### 13. `astra_gen_test_scaffold`
+### 14. `astra_gen_test_scaffold`
 
 **Use case:** Start a focused pytest test for a target with its real indexed location and dependency hints, without pretending to generate complete assertions.
 
@@ -488,7 +531,7 @@ The scaffold is text output only. The agent should add project-specific fixtures
 
 **Interpretation:** `found` and `target_node` confirm which declaration was selected. The scaffold's dependency comment is a review hint, not a complete fixture plan. The intentional `pytest.fail` keeps an incomplete scaffold from being mistaken for passing coverage.
 
-### 14. `astra_run_impacted`
+### 15. `astra_run_impacted`
 
 **Use case:** Close the pre-commit or CI loop by selecting and executing only tests affected by changed files.
 
@@ -525,7 +568,7 @@ Possible statuses are `passed`, `failed`, `timeout`, and `no_tests`. The runner 
 
 ## Continuous Indexing
 
-### 15. `astra watch`
+### 16. `astra watch`
 
 **Use case:** Keep graph and vector artifacts current while an editor or agent changes files over a long session.
 
@@ -549,7 +592,7 @@ Example output:
 
 **Interpretation:** The command stays in the foreground and stops on `Ctrl+C`. `index_count` increases after a detected change is indexed. `last_error` reports transient filesystem or parsing errors without stopping the watcher. Unchanged files are reused through the hash cache.
 
-### 16. `astra_start_watch`
+### 17. `astra_start_watch`
 
 **Use case:** Start a non-blocking watcher inside a long-lived MCP server session.
 
@@ -561,7 +604,7 @@ astra_start_watch({"path": "C:\\path\\to\\project", "interval": 1})
 
 **Interpretation:** The call returns after the initial index. Repeated calls for the same root reuse the existing watcher. Start it once per workspace session, not before every analysis call.
 
-### 17. `astra_index_status`
+### 18. `astra_index_status`
 
 **Use case:** Check whether background synchronization is active.
 
@@ -579,7 +622,7 @@ Example output:
 
 **Interpretation:** `running` confirms the watcher thread is active, while a rising `index_count` confirms detected changes were processed. If `last_error` is set, inspect the file and use `astra_index_repo` after the write completes.
 
-### 18. `astra_stop_watch`
+### 19. `astra_stop_watch`
 
 **Use case:** Stop background synchronization when an MCP session ends.
 

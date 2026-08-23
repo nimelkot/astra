@@ -202,6 +202,10 @@ def test_visualization_contains_both_artifacts(tmp_path: Path) -> None:
     assert "Vector chunks" in html
     assert "astra-mark" in html
     assert "hello" in html
+    assert "Hotspots only" in html
+    assert "Community view" in html
+    assert "Star nodes only" in html
+    assert "shape:n.isStar ? 'star'" in html
 
 
 def test_path_returns_none_when_missing_symbol(tmp_path: Path) -> None:
@@ -274,6 +278,25 @@ def test_fragility_hotspots_combine_graph_and_ast_metrics(tmp_path: Path) -> Non
     assert fragile["parameters"] == 3
     assert fragile["score"] >= 0
     assert report["formula"]
+
+
+def test_star_nodes_rank_shared_dependencies_and_assign_communities(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(
+        "def shared():\n    return 1\n\n"
+        "def first():\n    return shared()\n\n"
+        "def second():\n    return shared()\n",
+        encoding="utf-8",
+    )
+    engine = AstraEngine(tmp_path)
+    engine.index()
+
+    report = engine.star_nodes(limit=3, threshold=50)
+    communities = engine.graph.communities()
+
+    assert report["stars"][0]["name"] == "shared"
+    assert report["stars"][0]["is_star"] is True
+    assert report["stars"][0]["incoming"] == 2
+    assert all(node_id in communities for node_id in engine.graph.graph.nodes)
 
 
 def test_impact_and_refactor_plan_are_graph_aware(tmp_path: Path) -> None:

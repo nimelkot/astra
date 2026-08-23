@@ -156,6 +156,11 @@ class AstraEngine:
         report["root"] = str(self.root)
         return report
 
+    def star_nodes(self, limit: int = 20, threshold: float = 60.0) -> dict:
+        report = self.graph.star_nodes(limit=limit, threshold=threshold)
+        report["root"] = str(self.root)
+        return report
+
     def blast_radius(self, target: str, max_nodes: int = 200) -> dict:
         report = self.graph.blast_radius(target, max_nodes=max_nodes)
         report["root"] = str(self.root)

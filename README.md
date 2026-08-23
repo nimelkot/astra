@@ -21,7 +21,7 @@ Astra is designed as a local **code intelligence fabric**: a deterministic struc
 | **Agent orchestration** | Provides Dipper context scoops, Tether architecture checks, refactor plans, targeted test execution, and the `astra_codebase_workflow` MCP prompt. | Gives AI agents a disciplined operating model with evidence before edits and validation after edits. | CLI commands and MCP tools/prompts |
 | **Live delivery surfaces** | Serves the same engine through terminal commands, MCP, local HTML visualization, and a continuous filesystem watcher. | Fits developer workstations, CI pipelines, long-running agent sessions, and visual architecture reviews without duplicating logic. | `astra`, `astra-mcp`, and `astra visualize` |
 
-The MCP surface exposes eighteen tools and one orchestration prompt: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_impact`, `astra_refactor_plan`, `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, `astra_run_impacted`, `astra_start_watch`, `astra_index_status`, `astra_stop_watch`, `astra_hybrid_context`, and `astra_visualize`.
+The MCP surface exposes nineteen tools and one orchestration prompt: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_star_nodes`, `astra_impact`, `astra_refactor_plan`, `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, `astra_run_impacted`, `astra_start_watch`, `astra_index_status`, `astra_stop_watch`, `astra_hybrid_context`, and `astra_visualize`.
 
 <p align="center">
 	<img src="assets/astra-pipeline.png" alt="Astra indexing pipeline: parse, graph, index, and retrieve" width="900">
@@ -199,6 +199,16 @@ astra fragility --path C:\Users\YourName\Downloads\my-project --limit 10 --thres
 
 The matching MCP tool is `astra_get_fragility_hotspots`. See [docs/fragility-hotspots.md](docs/fragility-hotspots.md) for the scoring formula and LLM/CI workflows.
 
+### Star nodes
+
+Rank declarations that act as high-dependency anchors in the knowledge graph:
+
+```powershell
+astra star-nodes --path C:\Users\YourName\Downloads\my-project --limit 20 --threshold 60
+```
+
+The matching MCP tool is `astra_star_nodes`. Star status combines normalized incoming dependencies and PageRank. In `astra visualize`, star nodes use a star shape and can be isolated with the **Star nodes only** filter.
+
 ### Impact and refactor planning
 
 Inspect the upstream blast radius of a declaration:
@@ -313,6 +323,7 @@ The native tools are:
 | `astra_dipper(path, query, limit, parent_depth, child_depth, max_nodes, max_source_chars)` | Scoop a localized dependency-complete sub-graph for token-efficient LLM context. |
 | `astra_tether(path, cycle_limit, fanout_threshold)` | Run structural health checks and return architecture anomaly findings. |
 | `astra_get_fragility_hotspots(path, limit, threshold)` | Rank fragile declarations using graph centrality, AST complexity, and instability. |
+| `astra_star_nodes(path, limit, threshold)` | Rank high-importance declarations using incoming dependencies and PageRank. |
 | `astra_impact(path, target, max_nodes)` | Trace incoming calls and dependencies to report a declaration's blast radius. |
 | `astra_refactor_plan(path, target, replacement)` | Preview a graph-ordered, read-only structural identifier rename. |
 | `astra_test_map(path, limit)` | Map source declarations to tests that reach them and identify untested nodes. |

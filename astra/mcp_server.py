@@ -23,7 +23,8 @@ MCP_INSTRUCTIONS = (
     "3. Understand structure: use astra_path for a relationship between two symbols and "
     "astra_impact for the recursive upstream blast radius and affected files. Use "
     "astra_tether for cycles, orphan declarations, and high fan-out; use "
-    "astra_get_fragility_hotspots for centrality, AST complexity, and instability scores.\n"
+    "astra_get_fragility_hotspots for centrality, AST complexity, and instability scores, "
+    "and astra_star_nodes for highly depended-on declarations.\n"
     "4. Change safely: call astra_refactor_plan before a rename or structural edit. It is "
     "read-only, returns an ordered preview, and must be reviewed before the host edits files.\n"
     "5. Test deliberately: use astra_test_map to find untested declarations, "
@@ -93,6 +94,7 @@ def _register_tool_prompts() -> None:
         "astra_dipper": "Scoop compact dependency-complete context for an LLM.",
         "astra_tether": "Check cycles, orphan declarations, and high fan-out.",
         "astra_get_fragility_hotspots": "Rank declarations by graph and AST risk.",
+        "astra_star_nodes": "Rank highly depended-on declarations by incoming links and PageRank.",
         "astra_impact": "Calculate the upstream blast radius of a declaration.",
         "astra_refactor_plan": "Preview a graph-ordered structural rename.",
         "astra_test_map": "Map source declarations to tests that reach them.",
@@ -203,6 +205,12 @@ def astra_get_fragility_hotspots(
 ) -> dict:
     """Index if needed, then rank fragile functions/classes using graph and AST metrics."""
     return _indexed_engine(path).fragility_hotspots(limit=limit, threshold=threshold)
+
+
+@mcp.tool()
+def astra_star_nodes(path: str, limit: int = 20, threshold: float = 60.0) -> dict:
+    """Rank important declarations using incoming dependencies and PageRank."""
+    return _indexed_engine(path).star_nodes(limit=limit, threshold=threshold)
 
 
 @mcp.tool()
