@@ -17,7 +17,7 @@ The constellation mark represents the relationships Astra discovers across a cod
 | Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
 | Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
 
-The MCP surface exposes fifteen tools and one orchestration prompt: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_impact`, `astra_refactor_plan`, `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, `astra_run_impacted`, `astra_hybrid_context`, and `astra_visualize`.
+The MCP surface exposes eighteen tools and one orchestration prompt: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_impact`, `astra_refactor_plan`, `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, `astra_run_impacted`, `astra_start_watch`, `astra_index_status`, `astra_stop_watch`, `astra_hybrid_context`, and `astra_visualize`.
 
 <p align="center">
 	<img src="assets/astra-pipeline.png" alt="Astra indexing pipeline: parse, graph, index, and retrieve" width="900">
@@ -338,6 +338,8 @@ For a codebase knowledge-graph visualization, use this sequence:
 ```
 
 For investigation before an edit, use `astra_hybrid_context` or `astra_dipper`, then `astra_impact` and `astra_get_fragility_hotspots`. For a rename, call `astra_refactor_plan` first, review its read-only changes and order, apply the approved edit through the host's editing capability, then call `astra_index_repo` and `astra_visualize` again. Agents should use Astra's returned paths, URLs, nodes, snippets, and JSON reports rather than recreating equivalent artifacts.
+
+For a continuously changing workspace, use `astra watch` or the MCP watcher lifecycle tools documented in [docs/tool-cookbook.md](docs/tool-cookbook.md). The watcher is optional; on-demand incremental indexing remains the fallback for short-lived commands and MCP sessions.
 
 ## Integrations
 

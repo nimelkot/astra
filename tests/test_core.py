@@ -1,8 +1,10 @@
 import json
+import time
 from pathlib import Path
 
 from astra.core.engine import AstraEngine
 from astra.core.visualization import write_visualization
+from astra.core.watcher import AstraWatcher
 
 
 def test_index_search_and_callers(tmp_path: Path) -> None:
@@ -339,6 +341,24 @@ def test_run_impacted_executes_selected_tests(tmp_path: Path) -> None:
 
     assert result["status"] == "passed"
     assert result["returncode"] == 0
+
+
+def test_watcher_reindexes_changed_files(tmp_path: Path) -> None:
+    source_file = tmp_path / "app.py"
+    source_file.write_text("def greet():\n    return 'hi'\n", encoding="utf-8")
+    watcher = AstraWatcher(tmp_path, interval=0.25)
+
+    try:
+        status = watcher.start()
+        assert status["running"] is True
+        initial_count = status["index_count"]
+        source_file.write_text("def greet(name):\n    return f'hi {name}'\n", encoding="utf-8")
+        deadline = time.monotonic() + 5
+        while watcher.status()["index_count"] <= initial_count and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert watcher.status()["index_count"] > initial_count
+    finally:
+        watcher.stop()
 
 
 def test_index_cache_tracks_file_hash_changes(tmp_path: Path) -> None:

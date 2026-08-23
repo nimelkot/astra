@@ -523,6 +523,74 @@ Possible statuses are `passed`, `failed`, `timeout`, and `no_tests`. The runner 
 
 **Interpretation:** `passed` means pytest returned exit code 0 for the selected files; `failed` exposes a nonzero test result in `output`; `timeout` requires a narrower test set or longer timeout; and `no_tests` means the graph found no test files. Always inspect `returncode` and `output` before reporting success.
 
+## Continuous Indexing
+
+### 15. `astra watch`
+
+**Use case:** Keep graph and vector artifacts current while an editor or agent changes files over a long session.
+
+CLI:
+
+```powershell
+astra watch C:\path\to\project --interval 1
+```
+
+Example output:
+
+```json
+{
+  "root": "C:\\path\\to\\project",
+  "running": true,
+  "interval": 1.0,
+  "index_count": 1,
+  "last_error": null
+}
+```
+
+**Interpretation:** The command stays in the foreground and stops on `Ctrl+C`. `index_count` increases after a detected change is indexed. `last_error` reports transient filesystem or parsing errors without stopping the watcher. Unchanged files are reused through the hash cache.
+
+### 16. `astra_start_watch`
+
+**Use case:** Start a non-blocking watcher inside a long-lived MCP server session.
+
+MCP:
+
+```text
+astra_start_watch({"path": "C:\\path\\to\\project", "interval": 1})
+```
+
+**Interpretation:** The call returns after the initial index. Repeated calls for the same root reuse the existing watcher. Start it once per workspace session, not before every analysis call.
+
+### 17. `astra_index_status`
+
+**Use case:** Check whether background synchronization is active.
+
+MCP:
+
+```text
+astra_index_status({"path": "C:\\path\\to\\project"})
+```
+
+Example output:
+
+```json
+{"running": true, "index_count": 4, "last_error": null}
+```
+
+**Interpretation:** `running` confirms the watcher thread is active, while a rising `index_count` confirms detected changes were processed. If `last_error` is set, inspect the file and use `astra_index_repo` after the write completes.
+
+### 18. `astra_stop_watch`
+
+**Use case:** Stop background synchronization when an MCP session ends.
+
+MCP:
+
+```text
+astra_stop_watch({"path": "C:\\path\\to\\project"})
+```
+
+**Interpretation:** `running: false` confirms shutdown. Existing graph, vector, and cache artifacts remain available; later tools can still use on-demand incremental indexing.
+
 ## Recommended Agent Sequences
 
 ### Understand before editing
