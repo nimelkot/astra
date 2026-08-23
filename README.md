@@ -334,7 +334,7 @@ args = []
 
 If the host cannot find commands from your shell, use the absolute executable path: `.venv\Scripts\astra-mcp.exe` on Windows or `.venv/bin/astra-mcp` on macOS/Linux. The server communicates over stdio, so do not redirect its stdout.
 
-The server also sends automatic MCP initialization instructions with the same baseline workflow, so compatible clients can receive Astra guidance without a slash command. MCP clients that expose prompts can additionally select `astra_codebase_workflow` with a local `path` and natural-language `task` for a task-specific sequence. Prompts guide the agent; they do not execute tools themselves.
+The server also sends automatic MCP initialization instructions with the same baseline workflow, so compatible clients can receive Astra guidance without a slash command. MCP clients that expose prompts can additionally select `astra_codebase_workflow` with a local `path` and natural-language `task` for a task-specific sequence. Astra also publishes a companion `<tool>_prompt` for every MCP tool, so each tool has a discoverable slash-command workflow. Prompts guide the agent; they do not execute tools themselves.
 
 ### MCP tool orchestration
 

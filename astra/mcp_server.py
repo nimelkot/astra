@@ -83,6 +83,60 @@ def astra_codebase_workflow(path: str, task: str) -> list[dict[str, str]]:
     ]
 
 
+def _register_tool_prompts() -> None:
+    tool_prompts = {
+        "astra_index_repo": "Refresh the local graph and vector index before analysis.",
+        "astra_semantic_search": "Find code by concept, identifier, or source meaning.",
+        "astra_get_callers": "Find direct callers of a function or method.",
+        "astra_hybrid_context": "Combine semantic matches with structural callers.",
+        "astra_path": "Find the shortest structural path between symbols.",
+        "astra_dipper": "Scoop compact dependency-complete context for an LLM.",
+        "astra_tether": "Check cycles, orphan declarations, and high fan-out.",
+        "astra_get_fragility_hotspots": "Rank declarations by graph and AST risk.",
+        "astra_impact": "Calculate the upstream blast radius of a declaration.",
+        "astra_refactor_plan": "Preview a graph-ordered structural rename.",
+        "astra_test_map": "Map source declarations to tests that reach them.",
+        "astra_affected_tests": "Select tests affected by changed paths.",
+        "astra_gen_test_scaffold": "Generate a read-only pytest scaffold for a target.",
+        "astra_run_impacted": "Run the graph-selected impacted tests.",
+        "astra_start_watch": "Start continuous background indexing for a workspace.",
+        "astra_index_status": "Check continuous indexing status.",
+        "astra_stop_watch": "Stop continuous background indexing.",
+        "astra_visualize": "Render the current Astra graph and vector artifacts.",
+    }
+
+    def make_tool_prompt(tool_name: str) -> object:
+        def tool_prompt(path: str, task: str) -> list[dict[str, str]]:
+            return [
+                {
+                    "role": "user",
+                    "content": (
+                        f"Use the MCP tool {tool_name} for the local workspace at {path}.\n"
+                        f"Task: {task}\n\n"
+                        f"Purpose: {tool_prompts[tool_name]}\n"
+                        "Call the named tool with the appropriate arguments, interpret its "
+                        "structured result, and report missing data, warnings, failures, or "
+                        "limitations. This prompt "
+                        "call; it does not execute the tool itself."
+                    ),
+                }
+            ]
+
+        tool_prompt.__name__ = f"{tool_name}_prompt"
+        return tool_prompt
+
+    for tool_name, description in tool_prompts.items():
+        tool_prompt = make_tool_prompt(tool_name)
+        mcp.prompt(
+            name=f"{tool_name}_prompt",
+            title=f"{tool_name} Workflow",
+            description=f"{description} Use the {tool_name} MCP tool.",
+        )(tool_prompt)
+
+
+_register_tool_prompts()
+
+
 @mcp.tool()
 def astra_index_repo(path: str) -> dict:
     """Index or refresh a local repository before using other Astra tools."""
