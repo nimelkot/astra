@@ -627,3 +627,5 @@ astra_codebase_workflow({
 The prompt returns instructions to call `astra_index_repo` first, choose only the narrowest analysis tools, interpret uncertainty and warnings, review `astra_refactor_plan` before editing, and run `astra_affected_tests` plus `astra_run_impacted` afterward. For visualization requests it directs the agent to call `astra_visualize`, which renders Astra's existing artifacts rather than generating HTML independently.
 
 Server instructions and prompts are guidance, not executable workflows: the MCP client or LLM still decides whether and when to call each tool. A client that does not surface server instructions can still use the slash-command prompt, while the tools' automatic incremental index refresh remains the enforcement layer when guidance is skipped.
+
+Every MCP tool also has a companion prompt named `<tool_name>_prompt`, such as `astra_visualize_prompt` or `astra_impact_prompt`. These appear as slash commands in clients that expose MCP prompts and accept `path` plus a natural-language `task`. They provide the exact tool-routing context, but the client still performs the actual tool call.
