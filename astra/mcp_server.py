@@ -8,19 +8,36 @@ from .core.engine import AstraEngine
 from .core.visualization import write_visualization
 from .core.watcher import AstraWatcher
 
-mcp = MCPServer(
-    "Astra",
-    version="0.1.0",
-    instructions=(
-        "Astra provides indexed code intelligence for the connected local workspace. "
-        "Before analysis, use astra_index_repo once; analysis tools refresh the incremental "
-        "index automatically. Use semantic/context tools for discovery, graph tools for "
-        "dependencies and impact, fragility/tether for risk, refactor_plan before edits, "
-        "affected-tests and run_impacted after edits, and astra_visualize for rendered Astra "
-        "artifacts. Reuse returned JSON, source locations, test selections, and report URLs; "
-        "do not recreate Astra indexes, graphs, or HTML independently."
-    ),
+MCP_INSTRUCTIONS = (
+    "Astra provides indexed code intelligence for the connected local workspace. "
+    "Use this routing protocol and reuse Astra's returned JSON, source locations, test "
+    "selections, and report URLs.\n"
+    "1. Sync: call astra_index_repo once at the start of a task, or call astra_start_watch "
+    "once for a long editing session. All analysis tools perform an incremental hash-based "
+    "refresh automatically, so do not repeat astra_index_repo between read-only calls. "
+    "Use astra_index_status to check a watcher and astra_stop_watch when the session ends.\n"
+    "2. Discover: use astra_semantic_search for concepts, astra_get_callers for direct callers, "
+    "astra_hybrid_context for semantic matches plus callers, and astra_dipper for a compact "
+    "dependency-complete context package. These read-only discovery calls may be parallelized "
+    "after sync when they are independent.\n"
+    "3. Understand structure: use astra_path for a relationship between two symbols and "
+    "astra_impact for the recursive upstream blast radius and affected files. Use "
+    "astra_tether for cycles, orphan declarations, and high fan-out; use "
+    "astra_get_fragility_hotspots for centrality, AST complexity, and instability scores.\n"
+    "4. Change safely: call astra_refactor_plan before a rename or structural edit. It is "
+    "read-only, returns an ordered preview, and must be reviewed before the host edits files.\n"
+    "5. Test deliberately: use astra_test_map to find untested declarations, "
+    "astra_affected_tests for changed paths, astra_gen_test_scaffold for a reviewed pytest "
+    "stub, and astra_run_impacted after edits. Interpret status, returncode, and output; "
+    "never claim success from test selection alone.\n"
+    "6. Render: use astra_visualize for the current knowledge graph, vector chunks, Dipper, "
+    "and Tether views. It renders Astra artifacts; never generate equivalent HTML manually.\n"
+    "7. For every result, report missing symbols, empty selections, truncation, cycles, "
+    "untested nodes, fragility thresholds, watcher errors, and failed tests explicitly. "
+    "Do not recreate Astra's index, graph, test selection, or visualization independently."
 )
+
+mcp = MCPServer("Astra", version="0.1.0", instructions=MCP_INSTRUCTIONS)
 _watchers: dict[str, AstraWatcher] = {}
 
 
