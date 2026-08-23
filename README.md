@@ -8,14 +8,18 @@ Astra is a local code intelligence service for AI agents. It parses repository f
 
 ## Architecture
 
-The constellation mark represents the relationships Astra discovers across a codebase. Its pipeline has four stages: discover files without executing them, build the structural graph, index code chunks, and retrieve semantic matches with graph expansion.
+Astra is designed as a local **code intelligence fabric**: a deterministic structural layer explains how a codebase is assembled, while a semantic retrieval layer explains what the code means. Both layers feed the same knowledge graph and are exposed through the CLI and MCP so engineers, CI systems, and AI agents operate on one shared model of the repository.
 
-| Component | Role | Output |
-| --- | --- | --- |
-| AST and text parser | Uses Python AST for `.py` files and language-aware structural extraction for common source, markup, and data formats; indexes other readable files as file-level chunks. | Code chunks and references |
-| Structural graph | Builds directed NetworkX relationships between modules, declarations, and callers. | `.astra_graph.json` |
-| Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
-| Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
+| Intelligence layer | What it does | Business value | Primary artifact or interface |
+| --- | --- | --- | --- |
+| **Discovery and change sensing** | Recursively inventories supported files, ignores generated/dependency directories, and uses SHA-256 fingerprints to detect additions, edits, and removals. | Keeps repository intelligence current while minimizing repeat processing and update time. | `.astra_index_cache.json` and `astra watch` |
+| **AST structural intelligence** | Parses Python with the native AST and extracts declarations, methods, calls, branches, nesting, parameters, and source locations. Other supported formats receive language-aware structural extraction. | Turns source code into inspectable business entities and measurable logic risk without importing or executing the project. | Code chunks and structural references |
+| **Knowledge graph** | Builds directed relationships between modules, declarations, callers, dependencies, and definitions using NetworkX. | Makes blast radius, dependency paths, circularity, orphan code, refactor order, and architecture health queryable. | `.astra_graph.json` |
+| **Semantic retrieval** | Searches indexed code by concepts, identifiers, docstrings, and source content; hybrid workflows combine semantic matches with graph expansion. | Lets teams find capabilities by intent instead of memorizing filenames or symbol names. | `.astra_vectors/` and `astra_semantic_search` |
+| **Optional neural retrieval** | Can use Sentence Transformers and Chroma for embedding-based similarity; the default local lexical path requires no model download. | Adds meaning-based recall when terminology differs between a request and the implementation, while preserving a lightweight offline baseline. | Optional embedding backend |
+| **Risk and impact intelligence** | Scores fragility through graph centrality, AST complexity, and coupling; traces upstream blast radius and maps source nodes to tests. | Helps prioritize review, testing, and refactoring effort where change risk is highest. | `fragility`, `impact`, and test workflow tools |
+| **Agent orchestration** | Provides Dipper context scoops, Tether architecture checks, refactor plans, targeted test execution, and the `astra_codebase_workflow` MCP prompt. | Gives AI agents a disciplined operating model with evidence before edits and validation after edits. | CLI commands and MCP tools/prompts |
+| **Live delivery surfaces** | Serves the same engine through terminal commands, MCP, local HTML visualization, and a continuous filesystem watcher. | Fits developer workstations, CI pipelines, long-running agent sessions, and visual architecture reviews without duplicating logic. | `astra`, `astra-mcp`, and `astra visualize` |
 
 The MCP surface exposes eighteen tools and one orchestration prompt: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_impact`, `astra_refactor_plan`, `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, `astra_run_impacted`, `astra_start_watch`, `astra_index_status`, `astra_stop_watch`, `astra_hybrid_context`, and `astra_visualize`.
 
@@ -49,13 +53,19 @@ To upgrade only Astra without reinstalling its already-satisfied dependencies:
 python -m pip install --upgrade --no-deps "git+https://github.com/nimelkot/astra.git"
 ```
 
-`--no-deps` is the targeted update option: it updates the Astra package and its `astra`/`astra-mcp` entry points while skipping dependency resolution and downloads. Use the regular upgrade command instead if Astra's dependency requirements have changed or this is a new environment:
+`--no-deps` is the targeted update option: it updates the Astra package and its `astra`/`astra-mcp` entry points while skipping dependency resolution and downloads. If the command completes but the installed Astra version or entry points do not update, force-reinstall only Astra while still skipping dependency downloads:
+
+```powershell
+python -m pip install --force-reinstall --no-deps "git+https://github.com/nimelkot/astra.git"
+```
+
+Use the regular upgrade command if Astra's dependency requirements have changed or this is a new environment:
 
 ```powershell
 python -m pip install --upgrade "git+https://github.com/nimelkot/astra.git"
 ```
 
-Avoid `--force-reinstall` for routine updates. It reinstalls packages even when the required versions are already present and is only useful when the installation itself is damaged.
+The force-reinstall fallback reinstalls Astra itself but does not reinstall its dependencies because `--no-deps` is still present. Use it only when the targeted upgrade does not replace the installed package correctly.
 
 For an isolated command-line installation, use `pipx`:
 
