@@ -544,3 +544,18 @@ astra_index_repo -> astra_affected_tests -> astra_run_impacted -> astra_tether -
 ```
 
 All sequences use Astra's returned graph, source locations, test selections, and local report URLs. The agent should not recreate indexes, dependency graphs, or visualizations independently.
+
+## MCP Orchestration Prompt
+
+MCP clients that expose prompts can select `astra_codebase_workflow` with a local path and task:
+
+```text
+astra_codebase_workflow({
+  "path": "C:\\path\\to\\project",
+  "task": "Prepare a safe rename of charge_card and run the smallest relevant test set"
+})
+```
+
+The prompt returns instructions to call `astra_index_repo` first, choose only the narrowest analysis tools, interpret uncertainty and warnings, review `astra_refactor_plan` before editing, and run `astra_affected_tests` plus `astra_run_impacted` afterward. For visualization requests it directs the agent to call `astra_visualize`, which renders Astra's existing artifacts rather than generating HTML independently.
+
+Prompts are guidance templates, not executable workflows: the MCP client or LLM still decides whether and when to call each tool. The tools' automatic incremental index refresh remains the enforcement layer when a client skips the prompt.

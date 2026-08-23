@@ -17,7 +17,7 @@ The constellation mark represents the relationships Astra discovers across a cod
 | Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
 | Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
 
-The MCP surface exposes fifteen tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_impact`, `astra_refactor_plan`, `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, `astra_run_impacted`, `astra_hybrid_context`, and `astra_visualize`.
+The MCP surface exposes fifteen tools and one orchestration prompt: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_impact`, `astra_refactor_plan`, `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, `astra_run_impacted`, `astra_hybrid_context`, and `astra_visualize`.
 
 <p align="center">
 	<img src="assets/astra-pipeline.png" alt="Astra indexing pipeline: parse, graph, index, and retrieve" width="900">
@@ -306,6 +306,8 @@ args = []
 ```
 
 If the host cannot find commands from your shell, use the absolute executable path: `.venv\Scripts\astra-mcp.exe` on Windows or `.venv/bin/astra-mcp` on macOS/Linux. The server communicates over stdio, so do not redirect its stdout.
+
+MCP clients that expose prompts can select `astra_codebase_workflow` with a local `path` and natural-language `task`. It returns a task-aware sequence for indexing, context gathering, dependency and risk analysis, refactoring, testing, and visualization. Prompts guide the agent; they do not execute tools themselves.
 
 ### MCP tool orchestration
 
