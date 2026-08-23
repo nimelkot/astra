@@ -17,7 +17,7 @@ The constellation mark represents the relationships Astra discovers across a cod
 | Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
 | Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
 
-The MCP surface exposes eleven tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_impact`, `astra_refactor_plan`, `astra_hybrid_context`, and `astra_visualize`.
+The MCP surface exposes fifteen tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_impact`, `astra_refactor_plan`, `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, `astra_run_impacted`, `astra_hybrid_context`, and `astra_visualize`.
 
 <p align="center">
 	<img src="assets/astra-pipeline.png" alt="Astra indexing pipeline: parse, graph, index, and retrieve" width="900">
@@ -188,6 +188,19 @@ astra refactor-plan calculate_total sum_total --path C:\Users\YourName\Downloads
 
 The MCP equivalents are `astra_impact` and `astra_refactor_plan`. `astra tether` continues to report orphan declarations and circular dependencies, while `astra visualize` provides the structural anomaly view. See [docs/fragility-hotspots.md](docs/fragility-hotspots.md) for the full CLI/MCP workflow.
 
+### Targeted test workflows
+
+Map declarations to tests, select tests for changed files, generate a scaffold, or run the selected tests:
+
+```powershell
+astra test-map --path C:\Users\YourName\Downloads\my-project
+astra affected-tests app.py --path C:\Users\YourName\Downloads\my-project
+astra test-scaffold calculate_total --path C:\Users\YourName\Downloads\my-project
+astra run-impacted app.py --path C:\Users\YourName\Downloads\my-project
+```
+
+The MCP equivalents are `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, and `astra_run_impacted`. These tools automatically refresh the incremental index. The scaffold is read-only, and test execution is limited to graph-selected test files with a configurable timeout.
+
 ### Tether CI gate policy
 
 Recommended policy for pull-request automation:
@@ -275,6 +288,10 @@ The native tools are:
 | `astra_get_fragility_hotspots(path, limit, threshold)` | Rank fragile declarations using graph centrality, AST complexity, and instability. |
 | `astra_impact(path, target, max_nodes)` | Trace incoming calls and dependencies to report a declaration's blast radius. |
 | `astra_refactor_plan(path, target, replacement)` | Preview a graph-ordered, read-only structural identifier rename. |
+| `astra_test_map(path, limit)` | Map source declarations to tests that reach them and identify untested nodes. |
+| `astra_affected_tests(path, changed_paths, limit)` | Select the minimal test files affected by changed paths. |
+| `astra_gen_test_scaffold(path, target)` | Generate a read-only pytest scaffold with dependency hints. |
+| `astra_run_impacted(path, changed_paths, timeout)` | Run graph-selected tests with a bounded local pytest process. |
 | `astra_hybrid_context(path, query, limit, expansion)` | Combine semantic matches with graph expansion. |
 | `astra_visualize(path, output)` | Generate a local HTML graph report and return its file path and URL. |
 

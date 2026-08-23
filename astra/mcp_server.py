@@ -98,6 +98,30 @@ def astra_refactor_plan(path: str, target: str, replacement: str) -> dict:
 
 
 @mcp.tool()
+def astra_test_map(path: str, limit: int = 1000) -> dict:
+    """Map source declarations to tests that reach them through the graph."""
+    return _indexed_engine(path).test_map(limit)
+
+
+@mcp.tool()
+def astra_affected_tests(path: str, changed_paths: list[str], limit: int = 100) -> dict:
+    """Select indexed test files affected by a set of changed paths."""
+    return _indexed_engine(path).affected_tests(changed_paths, limit)
+
+
+@mcp.tool()
+def astra_gen_test_scaffold(path: str, target: str) -> dict:
+    """Generate a read-only pytest scaffold with target context and dependency hints."""
+    return _indexed_engine(path).test_scaffold(target)
+
+
+@mcp.tool()
+def astra_run_impacted(path: str, changed_paths: list[str], timeout: int = 120) -> dict:
+    """Select and run impacted tests with a bounded local pytest subprocess."""
+    return _indexed_engine(path).run_impacted(changed_paths, timeout)
+
+
+@mcp.tool()
 def astra_visualize(path: str, output: str | None = None) -> dict:
     """Index if needed, then render Astra artifacts; never generate the HTML manually."""
     _indexed_engine(path)

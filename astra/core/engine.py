@@ -3,7 +3,11 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
+
+import networkx as nx
 
 from .embeddings import VectorIndex
 from .graph import StructuralGraph
@@ -193,6 +197,150 @@ class AstraEngine:
             "changes": changes,
             "apply": False,
         }
+
+    def test_map(self, limit: int = 1000) -> dict:
+        tests = {
+            node
+            for node, data in self.graph.graph.nodes(data=True)
+            if self._is_test_node(node, data)
+        }
+        sources = {
+            node
+            for node, data in self.graph.graph.nodes(data=True)
+            if data.get("kind") != "module" and node not in tests
+        }
+        items = []
+        for source in sorted(sources):
+            reaching = sorted(test for test in tests if self._can_reach(test, source))
+            data = self.graph.graph.nodes[source]
+            items.append(
+                {
+                    "id": source,
+                    "name": data.get("name", source),
+                    "path": data.get("path"),
+                    "start_line": data.get("start_line"),
+                    "tests": reaching,
+                    "tested": bool(reaching),
+                }
+            )
+            if len(items) >= limit:
+                break
+        return {
+            "root": str(self.root),
+            "sources": items,
+            "untested": sum(not item["tested"] for item in items),
+        }
+
+    def affected_tests(self, changed_paths: list[str], limit: int = 100) -> dict:
+        normalized = {Path(path).as_posix() for path in changed_paths}
+        changed_nodes = [
+            node
+            for node, data in self.graph.graph.nodes(data=True)
+            if data.get("path") in normalized and data.get("kind") != "module"
+        ]
+        test_nodes = {
+            node
+            for node, data in self.graph.graph.nodes(data=True)
+            if self._is_test_node(node, data)
+        }
+        affected = sorted(
+            test
+            for test in test_nodes
+            if any(self._can_reach(test, node) for node in changed_nodes)
+        )[:limit]
+        files = sorted({self.graph.graph.nodes[node].get("path") for node in affected})
+        return {
+            "root": str(self.root),
+            "changed_paths": sorted(normalized),
+            "changed_nodes": changed_nodes,
+            "tests": affected,
+            "test_files": files,
+            "uncovered_changed_nodes": [
+                node
+                for node in changed_nodes
+                if not any(self._can_reach(test, node) for test in test_nodes)
+            ],
+        }
+
+    def test_scaffold(self, target: str) -> dict:
+        nodes = self.graph.resolve_nodes(target)
+        if not nodes:
+            return {"root": str(self.root), "target": target, "found": False, "scaffold": ""}
+        node = nodes[0]
+        data = self.graph.graph.nodes[node]
+        callers = self.graph.callers(target, limit=8)
+        scaffold = (
+            "import pytest\n\n\n"
+            f"def test_{data.get('name', 'target')}_behavior():\n"
+            f"    # Target: {data.get('path')}:{data.get('start_line')}\n"
+            "    # Dependencies/callers to consider: "
+            f"{', '.join(item.get('name', '') for item in callers) or 'none'}\n"
+            "    # TODO: Arrange real fixtures and mocks.\n"
+            "    pytest.fail(\"Implement assertions for the target behavior\")\n"
+        )
+        return {
+            "root": str(self.root),
+            "target": target,
+            "found": True,
+            "target_node": node,
+            "scaffold": scaffold,
+        }
+
+    def run_impacted(self, changed_paths: list[str], timeout: int = 120) -> dict:
+        selection = self.affected_tests(changed_paths)
+        command = [sys.executable, "-m", "pytest", *selection["test_files"]]
+        if not selection["test_files"]:
+            return {
+                **selection,
+                "command": command,
+                "status": "no_tests",
+                "returncode": 0,
+                "output": "",
+            }
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=self.root,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            return {
+                **selection,
+                "command": command,
+                "status": "timeout",
+                "returncode": None,
+                "output": str(exc),
+            }
+        return {
+            **selection,
+            "command": command,
+            "status": "passed" if completed.returncode == 0 else "failed",
+            "returncode": completed.returncode,
+            "output": (completed.stdout + completed.stderr)[-12000:],
+        }
+
+    def _is_test_node(self, node: str, data: dict) -> bool:
+        path = str(data.get("path", "")).lower()
+        name = str(data.get("name", "")).lower()
+        test_path = "test" in Path(path).parts or Path(path).name.startswith("test_")
+        return test_path and (name.startswith("test_") or name.startswith("test"))
+
+    def _can_reach(self, source: str, target: str) -> bool:
+        relationship = self.graph.graph.edge_subgraph(
+            [
+                (left, right)
+                for left, right, data in self.graph.graph.edges(data=True)
+                if data.get("kind") in {"calls", "depends_on"}
+            ]
+        )
+        return source == target or (
+            source in relationship
+            and target in relationship
+            and nx.has_path(relationship, source, target)
+        )
 
     def _load_cache(self) -> dict:
         if not self.cache_path.exists():
