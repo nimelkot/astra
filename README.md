@@ -299,13 +299,13 @@ The report uses the Vis Network browser library from its CDN for the structural 
 The structural graph view renders connected modules, declarations, and relationships across the indexed project:
 
 <p align="center">
-	<img src="assets/astra_viz_screenshot_2.png" alt="Astra structural graph visualization showing connected code nodes" width="100%">
+	<img src="assets/Astra_Viz_Export_Screenshot_1.png" alt="Astra structural knowledge graph with community coloring, star nodes, hotspots, and graph intelligence filters" width="100%">
 </p>
 
 The vector chunks view provides searchable cards with file paths, symbols, line ranges, and expandable source previews:
 
 <p align="center">
-	<img src="assets/astra_viz_screenshot_1.png" alt="Astra vector chunks visualization showing searchable source cards" width="100%">
+	<img src="assets/Astra_Viz_Export_Screenshot_2.png" alt="Astra vector chunk browser with searchable source and configuration cards" width="100%">
 </p>
 
 ## MCP
