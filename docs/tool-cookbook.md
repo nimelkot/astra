@@ -615,7 +615,7 @@ All sequences use Astra's returned graph, source locations, test selections, and
 
 ## MCP Orchestration Prompt
 
-MCP clients that expose prompts can select `astra_codebase_workflow` with a local path and task:
+The server sends baseline orchestration instructions during MCP initialization, so compatible clients can receive general Astra guidance automatically. MCP clients that expose prompts can select `astra_codebase_workflow` with a local path and task for a more specific workflow:
 
 ```text
 astra_codebase_workflow({
@@ -626,4 +626,4 @@ astra_codebase_workflow({
 
 The prompt returns instructions to call `astra_index_repo` first, choose only the narrowest analysis tools, interpret uncertainty and warnings, review `astra_refactor_plan` before editing, and run `astra_affected_tests` plus `astra_run_impacted` afterward. For visualization requests it directs the agent to call `astra_visualize`, which renders Astra's existing artifacts rather than generating HTML independently.
 
-Prompts are guidance templates, not executable workflows: the MCP client or LLM still decides whether and when to call each tool. The tools' automatic incremental index refresh remains the enforcement layer when a client skips the prompt.
+Server instructions and prompts are guidance, not executable workflows: the MCP client or LLM still decides whether and when to call each tool. A client that does not surface server instructions can still use the slash-command prompt, while the tools' automatic incremental index refresh remains the enforcement layer when guidance is skipped.
