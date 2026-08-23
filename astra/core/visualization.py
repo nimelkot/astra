@@ -60,7 +60,7 @@ def build_visualization(root: str | Path) -> str:
             {
                 "id": node.get("id"),
                 "label": node.get("name", node.get("id", "")),
-                "group": node.get("kind", "module"),
+                "kind": node.get("kind", "module"),
                 "path": node.get("path", ""),
                 "startLine": node.get("start_line"),
                 "community": communities.get(node.get("id"), -1),
@@ -149,6 +149,7 @@ main {{ padding:18px 30px 30px; }}
 .legend button {{ display:flex; width:100%; align-items:center; justify-content:flex-start; gap:8px; padding:7px 9px; font-size:12px; }}
 .legend .swatch {{ width:9px; height:9px; border-radius:50%; flex:none; }}
 .legend button.off {{ opacity:.4; }}
+.legend-note {{ margin-top:8px; color:var(--muted); font-size:10px; line-height:1.4; }}
 .community-list {{ display:grid; grid-template-columns:1fr 1fr; gap:6px; }}
 .community-list button {{ padding:6px 8px; font-size:11px; }}
 .community-list button.off {{ opacity:.35; }}
@@ -190,7 +191,7 @@ pre {{ display:none; margin:10px 0 0; max-height:240px; overflow:auto; white-spa
 <header><div class="brand" aria-label="Astra"><img id="astra-mark" src="{logo_uri}" alt="Astra"><span>astra intelligence</span></div><div class="path">{escape(str(target))}</div></header>
 <nav><button class="tab active" data-panel="structure">Structural graph</button><button class="tab" data-panel="vectors">Vector chunks</button><button class="tab" data-panel="dipper">Dipper scoop</button><button class="tab" data-panel="tether">Tether health</button></nav>
 <main>
-<section id="structure" class="panel active"><div class="graph-heading"><div><h2>Repository knowledge graph</h2><p>Explore dependencies, communities, hotspots, and high-importance star nodes.</p></div><input id="node-filter" type="search" placeholder="Search symbols or paths..."></div><div class="graph-shell"><div id="graph"></div><aside class="control-rail"><div class="rail-section"><div class="rail-title">Graph intelligence</div><label class="switch-row"><span>Hotspots only</span><input id="hotspot-only" type="checkbox"></label><label class="switch-row"><span>Community view</span><input id="community-mode" type="checkbox"></label><label class="switch-row"><span>Star nodes only</span><input id="star-only" type="checkbox"></label><label class="switch-row"><span>Edge labels</span><input id="edge-labels" type="checkbox" checked></label><div id="graph-stats"></div></div><div class="rail-section"><div class="rail-title">Node types</div><div id="legend" class="legend"></div></div><div class="rail-section"><div class="rail-title">Communities / subgraphs</div><div id="community-list" class="community-list"></div></div><div class="rail-section"><div class="rail-title">Relationships</div><div class="rail-stat"><span>defines</span><strong style="color:#94a3b8">solid</strong></div><div class="rail-stat"><span>calls</span><strong style="color:#7dd3fc">cyan</strong></div><div class="rail-stat"><span>depends_on</span><strong style="color:#fbbf24">amber</strong></div></div><div class="rail-section"><div class="rail-title">Selection</div><div id="edge-info" class="edge-info">Select a node or edge to inspect it.</div></div></aside></div></section>
+<section id="structure" class="panel active"><div class="graph-heading"><div><h2>Repository knowledge graph</h2><p>Explore dependencies, communities, hotspots, and high-importance star nodes.</p></div><input id="node-filter" type="search" placeholder="Search symbols or paths..."></div><div class="graph-shell"><div id="graph"></div><aside class="control-rail"><div class="rail-section"><div class="rail-title">Graph intelligence</div><label class="switch-row"><span>Hotspots only</span><input id="hotspot-only" type="checkbox"></label><label class="switch-row"><span>Community view</span><input id="community-mode" type="checkbox"></label><label class="switch-row"><span>Star nodes only</span><input id="star-only" type="checkbox"></label><label class="switch-row"><span>Edge labels</span><input id="edge-labels" type="checkbox" checked></label><div id="graph-stats"></div></div><div class="rail-section"><div class="rail-title">Node types</div><div id="legend" class="legend"></div><div class="legend-note">Counts include isolated nodes without visible relationship edges.</div></div><div class="rail-section"><div class="rail-title">Communities / subgraphs</div><div id="community-list" class="community-list"></div></div><div class="rail-section"><div class="rail-title">Relationships</div><div class="rail-stat"><span>defines</span><strong style="color:#94a3b8">solid</strong></div><div class="rail-stat"><span>calls</span><strong style="color:#7dd3fc">cyan</strong></div><div class="rail-stat"><span>depends_on</span><strong style="color:#fbbf24">amber</strong></div></div><div class="rail-section"><div class="rail-title">Selection</div><div id="edge-info" class="edge-info">Select a node or edge to inspect it.</div></div></aside></div></section>
 <section id="vectors" class="panel"><div class="toolbar"><input id="filter" type="search" placeholder="Filter files, symbols, or source..."><span id="count"></span></div><div id="chunks"></div></section>
 <section id="dipper" class="panel"><div class="graph-toolbar"><input id="dipper-query" type="search" placeholder="Query symbol or concept (for example: checkout, parser, sql)"><label>Seeds <input id="dipper-limit" type="number" value="5" min="1" max="25" style="width:72px"></label><label>Parent depth <input id="dipper-parent" type="number" value="1" min="0" max="6" style="width:72px"></label><label>Child depth <input id="dipper-child" type="number" value="1" min="0" max="6" style="width:72px"></label><label>Max nodes <input id="dipper-max" type="number" value="80" min="5" max="300" style="width:72px"></label><button id="dipper-run">Scoop context</button></div><div id="dipper-summary" class="cards"></div><div id="dipper-graph"></div><div id="dipper-snippets" class="list" style="margin-top:10px;"></div></section>
 <section id="tether" class="panel"><div class="graph-toolbar"><label>Fanout threshold <input id="tether-fanout" type="number" value="12" min="1" max="200" style="width:80px"></label><label>Cycle limit <input id="tether-cycles" type="number" value="20" min="1" max="200" style="width:80px"></label><button id="tether-run">Run health checks</button></div><div id="tether-summary" class="cards"></div><div id="tether-anomalies" class="list"></div></section>
@@ -210,9 +211,9 @@ const starOnlyEl = document.getElementById('star-only');
 const edgeLabelsEl = document.getElementById('edge-labels');
 const graphStatsEl = document.getElementById('graph-stats');
 const edgeInfoEl = document.getElementById('edge-info');
-const presentGroups = [...new Set(graphData.nodes.map(node => node.group))].sort();
+const presentGroups = [...new Set(graphData.nodes.map(node => node.kind))].sort();
 const activeGroups = new Set(presentGroups);
-const groupCounts = new Map(presentGroups.map(group => [group, graphData.nodes.filter(node => node.group === group).length]));
+const groupCounts = new Map(presentGroups.map(group => [group, graphData.nodes.filter(node => node.kind === group).length]));
 function colorForGroup(group) {{
     if (palette[group]) return palette[group];
     const hash = [...String(group)].reduce((value, character) => value + character.charCodeAt(0), 0);
@@ -224,17 +225,19 @@ const edgePalette = {{ defines:'#64748b', calls:'#7dd3fc', depends_on:'#fbbf24' 
 const allNodes = graphData.nodes.map(n => ({{
     ...n,
     color:{{
-        background:colorForGroup(n.group),
-        border:n.isHotspot ? '#fb7185' : colorForGroup(n.group),
-        highlight:{{background:colorForGroup(n.group), border:'#f4f5f8'}},
-        hover:{{background:colorForGroup(n.group), border:'#f4f5f8'}}
+        background:colorForGroup(n.kind),
+        border:colorForGroup(n.kind),
+        highlight:{{background:colorForGroup(n.kind), border:'#f4f5f8'}},
+        hover:{{background:colorForGroup(n.kind), border:'#f4f5f8'}}
     }},
     font:{{color:'#f4f5f8', face:'IBM Plex Sans', size:13, strokeWidth:3, strokeColor:'#151822'}},
     shape:n.isStar ? 'star' : 'dot',
     size:n.isStar ? 25 : 14,
     borderWidth:n.isHotspot ? 4 : 1.5,
     borderWidthSelected:4,
-    shadow:n.isStar ? {{enabled:true, color:'rgba(255,255,255,.72)', size:20}} : false
+    shadow:n.isHotspot
+        ? {{enabled:true, color:'rgba(244,63,94,.95)', size:32, x:0, y:0}}
+        : (n.isStar ? {{enabled:true, color:'rgba(255,255,255,.72)', size:20}} : false)
 }}));
 const allEdges = graphData.edges.map(e => ({{...e, arrows:'to', width:e.label === 'defines' ? 1 : 2, color:{{color:edgePalette[e.label] || '#64748b', opacity:.7, highlight:'#f4f5f8'}}, font:{{color:'#cbd5e1', face:'IBM Plex Sans', size:10, align:'middle', strokeWidth:4, strokeColor:'#151822'}}, smooth:{{type:'dynamic'}} }}));
 const nodeById = new Map(allNodes.map(node => [node.id, node]));
@@ -246,7 +249,7 @@ function renderGraph() {{
     const query = nodeFilterEl.value.toLowerCase();
     const communityMode = communityModeEl.checked;
     const visibleNodes = allNodes.filter(n =>
-        activeGroups.has(n.group)
+        activeGroups.has(n.kind)
         && activeCommunities.has(n.community)
         && (!hotspotOnlyEl.checked || n.isHotspot)
         && (!starOnlyEl.checked || n.isStar)
@@ -254,10 +257,10 @@ function renderGraph() {{
     ).map(n => ({{
         ...n,
         color:{{
-            background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : colorForGroup(n.group),
-            border:n.isHotspot ? '#fb7185' : (communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : colorForGroup(n.group)),
-            highlight:{{background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : colorForGroup(n.group), border:'#f4f5f8'}},
-            hover:{{background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : colorForGroup(n.group), border:'#f4f5f8'}}
+            background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : colorForGroup(n.kind),
+            border:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : colorForGroup(n.kind),
+            highlight:{{background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : colorForGroup(n.kind), border:'#f4f5f8'}},
+            hover:{{background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : colorForGroup(n.kind), border:'#f4f5f8'}}
         }},
         level:communityMode ? n.community : undefined
     }}));
@@ -316,7 +319,7 @@ chunksEl.addEventListener('click', event => event.target.closest('.chunk')?.clas
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {{ document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.panel').forEach(p => p.classList.remove('active')); tab.classList.add('active'); document.getElementById(tab.dataset.panel).classList.add('active'); if (tab.dataset.panel === 'dipper' && dipperNetwork) setTimeout(() => {{ dipperNetwork.redraw(); dipperNetwork.fit({{animation:false}}); }}, 100); }}));
 
 function relationshipEdge(edge) {{ return edge.label === 'calls' || edge.label === 'depends_on'; }}
-function symbolForNode(node) {{ return node && (node.group === 'function' || node.group === 'method') ? node.label + '()' : (node?.label || 'unknown'); }}
+function symbolForNode(node) {{ return node && (node.kind === 'function' || node.kind === 'method') ? node.label + '()' : (node?.label || 'unknown'); }}
 
 function walkNeighborhood(seeds, parentDepth, childDepth, maxNodes) {{
     const collected = new Set(seeds);
@@ -449,7 +452,7 @@ function runTether() {{
         outgoing.set(edge.from, (outgoing.get(edge.from) || 0) + 1);
         incoming.set(edge.to, (incoming.get(edge.to) || 0) + 1);
     }});
-    const nonModuleNodes = allNodes.filter(node => node.group !== 'module');
+    const nonModuleNodes = allNodes.filter(node => node.kind !== 'module');
     const orphans = nonModuleNodes.filter(node => !incoming.get(node.id) && !outgoing.get(node.id));
     const highFanout = nonModuleNodes.filter(node => (outgoing.get(node.id) || 0) >= fanoutThreshold);
     const status = cycles.length ? 'warn' : 'pass';
