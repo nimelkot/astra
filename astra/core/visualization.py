@@ -210,17 +210,24 @@ const starOnlyEl = document.getElementById('star-only');
 const edgeLabelsEl = document.getElementById('edge-labels');
 const graphStatsEl = document.getElementById('graph-stats');
 const edgeInfoEl = document.getElementById('edge-info');
-const activeGroups = new Set(Object.keys(palette));
+const presentGroups = [...new Set(graphData.nodes.map(node => node.group))].sort();
+const activeGroups = new Set(presentGroups);
+const groupCounts = new Map(presentGroups.map(group => [group, graphData.nodes.filter(node => node.group === group).length]));
+function colorForGroup(group) {{
+    if (palette[group]) return palette[group];
+    const hash = [...String(group)].reduce((value, character) => value + character.charCodeAt(0), 0);
+    return communityPalette[hash % communityPalette.length];
+}}
 const allCommunities = [...new Set(graphData.nodes.map(n => n.community))].sort((a,b) => a-b);
 const activeCommunities = new Set(allCommunities);
 const edgePalette = {{ defines:'#64748b', calls:'#7dd3fc', depends_on:'#fbbf24' }};
 const allNodes = graphData.nodes.map(n => ({{
     ...n,
     color:{{
-        background:palette[n.group] || palette.file,
-        border:n.isHotspot ? '#fb7185' : (palette[n.group] || palette.file),
-        highlight:{{background:palette[n.group] || palette.file, border:'#f4f5f8'}},
-        hover:{{background:palette[n.group] || palette.file, border:'#f4f5f8'}}
+        background:colorForGroup(n.group),
+        border:n.isHotspot ? '#fb7185' : colorForGroup(n.group),
+        highlight:{{background:colorForGroup(n.group), border:'#f4f5f8'}},
+        hover:{{background:colorForGroup(n.group), border:'#f4f5f8'}}
     }},
     font:{{color:'#f4f5f8', face:'IBM Plex Sans', size:13, strokeWidth:3, strokeColor:'#151822'}},
     shape:n.isStar ? 'star' : 'dot',
@@ -247,10 +254,10 @@ function renderGraph() {{
     ).map(n => ({{
         ...n,
         color:{{
-            background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : (palette[n.group] || palette.file),
-            border:n.isHotspot ? '#fb7185' : (communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : (palette[n.group] || palette.file)),
-            highlight:{{background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : (palette[n.group] || palette.file), border:'#f4f5f8'}},
-            hover:{{background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : (palette[n.group] || palette.file), border:'#f4f5f8'}}
+            background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : colorForGroup(n.group),
+            border:n.isHotspot ? '#fb7185' : (communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : colorForGroup(n.group)),
+            highlight:{{background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : colorForGroup(n.group), border:'#f4f5f8'}},
+            hover:{{background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : colorForGroup(n.group), border:'#f4f5f8'}}
         }},
         level:communityMode ? n.community : undefined
     }}));
@@ -287,7 +294,7 @@ function renderGraph() {{
 if (window.vis && graphData.nodes.length) {{
     renderGraph();
 }} else {{ graphEl.innerHTML = '<div class="empty">No structural graph nodes found, or the visualization library could not load.</div>'; }}
-Object.keys(palette).forEach(group => {{ const button = document.createElement('button'); button.innerHTML = '<span class="swatch" style="background:' + palette[group] + '"></span>' + group; button.style.borderColor = palette[group]; button.addEventListener('click', () => {{ if (activeGroups.has(group)) {{ activeGroups.delete(group); button.classList.add('off'); }} else {{ activeGroups.add(group); button.classList.remove('off'); }} renderGraph(); }}); legendEl.appendChild(button); }});
+presentGroups.forEach(group => {{ const color = colorForGroup(group); const button = document.createElement('button'); button.innerHTML = '<span class="swatch" style="background:' + color + '"></span><span>' + escapeHtml(group) + '</span><span style="margin-left:auto;color:#9ba3b4">' + groupCounts.get(group) + '</span>'; button.style.borderColor = color; button.addEventListener('click', () => {{ if (activeGroups.has(group)) {{ activeGroups.delete(group); button.classList.add('off'); }} else {{ activeGroups.add(group); button.classList.remove('off'); }} renderGraph(); }}); legendEl.appendChild(button); }});
 allCommunities.forEach(community => {{ const button = document.createElement('button'); const color = communityPalette[Math.abs(community) % communityPalette.length]; button.innerHTML = '<span class="swatch" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + color + '"></span> C' + (community + 1); button.style.borderColor = color; button.addEventListener('click', () => {{ if (activeCommunities.has(community)) {{ activeCommunities.delete(community); button.classList.add('off'); }} else {{ activeCommunities.add(community); button.classList.remove('off'); }} renderGraph(); }}); communityListEl.appendChild(button); }});
 nodeFilterEl.addEventListener('input', renderGraph);
 [hotspotOnlyEl, communityModeEl, starOnlyEl, edgeLabelsEl].forEach(control => control.addEventListener('change', renderGraph));

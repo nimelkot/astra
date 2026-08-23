@@ -209,7 +209,9 @@ def test_visualization_contains_both_artifacts(tmp_path: Path) -> None:
     assert "shape:n.isStar ? 'star'" in html
     assert "IBM Plex Sans" in html
     assert "sourceCommunity" in html
-    assert "background:palette[n.group]" in html
+    assert "background:colorForGroup(n.group)" in html
+    assert "presentGroups" in html
+    assert "groupCounts" in html
     assert "rgba(255,255,255,.72)" in html
     assert "dipperNetwork.fit" in html
     assert "m6 15 6-6 6 6" in html
