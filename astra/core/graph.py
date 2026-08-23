@@ -319,6 +319,70 @@ class StructuralGraph:
             "analyzed": len(results),
         }
 
+    def star_nodes(self, limit: int = 20, threshold: float = 60.0) -> dict[str, Any]:
+        relationship_graph = nx.DiGraph()
+        declarations = [
+            node for node, data in self.graph.nodes(data=True) if data.get("kind") != "module"
+        ]
+        relationship_graph.add_nodes_from(declarations)
+        relationship_graph.add_edges_from(
+            (source, target)
+            for source, target, data in self.graph.edges(data=True)
+            if data.get("kind") in {"calls", "depends_on"}
+            and source in relationship_graph
+            and target in relationship_graph
+        )
+        pagerank = nx.pagerank(relationship_graph) if declarations else {}
+        incoming = dict(relationship_graph.in_degree())
+        outgoing = dict(relationship_graph.out_degree())
+        max_incoming = max(incoming.values(), default=0)
+        max_pagerank = max(pagerank.values(), default=0.0)
+        ranked: list[dict[str, Any]] = []
+        for node in declarations:
+            dependency_score = incoming.get(node, 0) / max_incoming if max_incoming else 0.0
+            rank_score = pagerank.get(node, 0.0) / max_pagerank if max_pagerank else 0.0
+            score = (dependency_score * 0.65 + rank_score * 0.35) * 100
+            data = self.graph.nodes[node]
+            ranked.append(
+                {
+                    "id": node,
+                    "name": data.get("name", node),
+                    "kind": data.get("kind"),
+                    "path": data.get("path"),
+                    "start_line": data.get("start_line"),
+                    "incoming": incoming.get(node, 0),
+                    "outgoing": outgoing.get(node, 0),
+                    "pagerank": round(pagerank.get(node, 0.0), 6),
+                    "score": round(score, 2),
+                    "is_star": score >= threshold,
+                }
+            )
+        ranked.sort(key=lambda item: (-item["score"], item["path"], item["start_line"] or 0))
+        return {
+            "threshold": threshold,
+            "formula": "normalized incoming dependencies * 0.65 + normalized PageRank * 0.35",
+            "stars": ranked[:limit],
+            "star_count": sum(item["is_star"] for item in ranked),
+            "analyzed": len(ranked),
+        }
+
+    def communities(self) -> dict[str, int]:
+        relationship_graph = nx.Graph()
+        relationship_graph.add_nodes_from(self.graph.nodes())
+        relationship_graph.add_edges_from(
+            (source, target)
+            for source, target, data in self.graph.edges(data=True)
+            if data.get("kind") in {"calls", "depends_on", "defines"}
+        )
+        if relationship_graph.number_of_edges() == 0:
+            return {node: community_id for community_id, node in enumerate(relationship_graph)}
+        communities = nx.community.greedy_modularity_communities(relationship_graph)
+        mapping: dict[str, int] = {}
+        for community_id, members in enumerate(communities):
+            for node in members:
+                mapping[node] = community_id
+        return mapping
+
     def blast_radius(self, target: str, max_nodes: int = 200) -> dict[str, Any]:
         seeds = self.resolve_nodes(target)
         if not seeds:

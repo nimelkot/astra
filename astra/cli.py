@@ -163,6 +163,17 @@ def fragility(
     console.print_json(json.dumps(result))
 
 
+@app.command("star-nodes")
+def star_nodes(
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+    limit: int = typer.Option(20, min=1, max=200),
+    threshold: float = typer.Option(60.0, min=0, max=100),
+) -> None:
+    """Rank high-dependency declarations as star nodes."""
+    result = _indexed_engine(path).star_nodes(limit=limit, threshold=threshold)
+    console.print_json(json.dumps(result))
+
+
 @app.command("impact")
 def impact(
     target: str = typer.Argument(..., help="Function, class, or declaration to analyze."),
