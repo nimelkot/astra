@@ -216,13 +216,18 @@ const activeCommunities = new Set(allCommunities);
 const edgePalette = {{ defines:'#64748b', calls:'#7dd3fc', depends_on:'#fbbf24' }};
 const allNodes = graphData.nodes.map(n => ({{
     ...n,
-    color:palette[n.group] || palette.file,
+    color:{{
+        background:palette[n.group] || palette.file,
+        border:n.isHotspot ? '#fb7185' : (palette[n.group] || palette.file),
+        highlight:{{background:palette[n.group] || palette.file, border:'#f4f5f8'}},
+        hover:{{background:palette[n.group] || palette.file, border:'#f4f5f8'}}
+    }},
     font:{{color:'#f4f5f8', face:'IBM Plex Sans', size:13, strokeWidth:3, strokeColor:'#151822'}},
     shape:n.isStar ? 'star' : 'dot',
     size:n.isStar ? 25 : 14,
     borderWidth:n.isHotspot ? 4 : 1.5,
     borderWidthSelected:4,
-    shadow:n.isStar ? {{enabled:true, color:'rgba(251,191,36,.45)', size:18}} : false
+    shadow:n.isStar ? {{enabled:true, color:'rgba(255,255,255,.72)', size:20}} : false
 }}));
 const allEdges = graphData.edges.map(e => ({{...e, arrows:'to', width:e.label === 'defines' ? 1 : 2, color:{{color:edgePalette[e.label] || '#64748b', opacity:.7, highlight:'#f4f5f8'}}, font:{{color:'#cbd5e1', face:'IBM Plex Sans', size:10, align:'middle', strokeWidth:4, strokeColor:'#151822'}}, smooth:{{type:'dynamic'}} }}));
 const nodeById = new Map(allNodes.map(node => [node.id, node]));
@@ -241,7 +246,12 @@ function renderGraph() {{
         && `${{n.label}} ${{n.title}}`.toLowerCase().includes(query)
     ).map(n => ({{
         ...n,
-        color:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : (palette[n.group] || palette.file),
+        color:{{
+            background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : (palette[n.group] || palette.file),
+            border:n.isHotspot ? '#fb7185' : (communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : (palette[n.group] || palette.file)),
+            highlight:{{background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : (palette[n.group] || palette.file), border:'#f4f5f8'}},
+            hover:{{background:communityMode ? communityPalette[Math.abs(n.community) % communityPalette.length] : (palette[n.group] || palette.file), border:'#f4f5f8'}}
+        }},
         level:communityMode ? n.community : undefined
     }}));
     const visibleIds = new Set(visibleNodes.map(n => n.id));
@@ -296,7 +306,7 @@ function renderChunks() {{
 function escapeHtml(value) {{ return String(value).replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c])); }}
 document.getElementById('filter').addEventListener('input', renderChunks);
 chunksEl.addEventListener('click', event => event.target.closest('.chunk')?.classList.toggle('open'));
-document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {{ document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.panel').forEach(p => p.classList.remove('active')); tab.classList.add('active'); document.getElementById(tab.dataset.panel).classList.add('active'); }}));
+document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {{ document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.panel').forEach(p => p.classList.remove('active')); tab.classList.add('active'); document.getElementById(tab.dataset.panel).classList.add('active'); if (tab.dataset.panel === 'dipper' && dipperNetwork) setTimeout(() => {{ dipperNetwork.redraw(); dipperNetwork.fit({{animation:false}}); }}, 100); }}));
 
 function relationshipEdge(edge) {{ return edge.label === 'calls' || edge.label === 'depends_on'; }}
 function symbolForNode(node) {{ return node && (node.group === 'function' || node.group === 'method') ? node.label + '()' : (node?.label || 'unknown'); }}
@@ -380,6 +390,7 @@ function runDipper() {{
             edges:{{ selectionWidth:3 }}
         }}
     );
+    dipperNetwork.once('stabilizationIterationsDone', () => dipperNetwork.fit({{animation:false}}));
 }}
 
 function detectCycles(limit) {{
