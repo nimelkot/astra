@@ -93,3 +93,23 @@ Use `astra visualize` to inspect the structural graph and existing Tether anomal
 ## Git history metrics
 
 Git churn is intentionally not part of the initial score. Commit frequency, author count, and recent ownership can be useful risk signals, but they require policy decisions about history depth, renames, generated files, and shallow CI checkouts. They can be added later as a separate optional signal rather than changing the deterministic AST-and-graph baseline.
+
+## Targeted Test Tools
+
+The test tools close the loop between graph analysis and validation:
+
+```powershell
+astra test-map --path C:\path\to\project
+astra affected-tests astra/core/engine.py --path C:\path\to\project
+astra test-scaffold AstraEngine --path C:\path\to\project
+astra run-impacted astra/core/engine.py --path C:\path\to\project
+```
+
+The MCP equivalents are `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, and `astra_run_impacted`.
+
+- `test-map` maps each indexed source declaration to test declarations that reach it and reports untested nodes.
+- `affected-tests` accepts changed repository-relative paths and returns the minimal test files reachable from those changes.
+- `test-scaffold` emits a read-only pytest stub with the target location and graph caller hints.
+- `run-impacted` executes only the selected test files using the active Python interpreter and a timeout. It returns `passed`, `failed`, `timeout`, or `no_tests`.
+
+All CLI and MCP analysis tools refresh the incremental index first. A practical agent loop is: refresh, map or select tests, inspect impact and fragility, generate a scaffold when needed, apply an approved edit, then run the affected tests.

@@ -296,6 +296,51 @@ def test_impact_and_refactor_plan_are_graph_aware(tmp_path: Path) -> None:
     assert any("sum_total" in change["after"] for change in plan["changes"])
 
 
+def test_test_map_and_affected_tests_use_graph_reachability(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(
+        "def total(value):\n"
+        "    return value\n",
+        encoding="utf-8",
+    )
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_app.py").write_text(
+        "from app import total\n\n"
+        "def test_total():\n"
+        "    assert total(2) == 2\n",
+        encoding="utf-8",
+    )
+    engine = AstraEngine(tmp_path)
+    engine.index()
+
+    mapping = engine.test_map()
+    affected = engine.affected_tests(["app.py"])
+
+    source = next(item for item in mapping["sources"] if item["name"] == "total")
+    assert source["tested"] is True
+    assert affected["test_files"] == ["tests/test_app.py"]
+    assert affected["uncovered_changed_nodes"] == []
+
+
+def test_run_impacted_executes_selected_tests(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text("def total(value):\n    return value\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_app.py").write_text(
+        "from app import total\n\n"
+        "def test_total():\n"
+        "    assert total(2) == 2\n",
+        encoding="utf-8",
+    )
+    engine = AstraEngine(tmp_path)
+    engine.index()
+
+    result = engine.run_impacted(["app.py"])
+
+    assert result["status"] == "passed"
+    assert result["returncode"] == 0
+
+
 def test_index_cache_tracks_file_hash_changes(tmp_path: Path) -> None:
     source_file = tmp_path / "app.py"
     source_file.write_text("def greet():\n    return 'hi'\n", encoding="utf-8")

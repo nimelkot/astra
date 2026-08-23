@@ -17,6 +17,41 @@ def _indexed_engine(path: str) -> AstraEngine:
     return engine
 
 
+@mcp.prompt(
+    name="astra_codebase_workflow",
+    title="Astra Codebase Workflow",
+    description="Plan an efficient Astra tool sequence for a codebase task.",
+)
+def astra_codebase_workflow(path: str, task: str) -> list[dict[str, str]]:
+    """Give an MCP client a structured, task-aware Astra orchestration plan."""
+    return [
+        {
+            "role": "user",
+            "content": (
+                f"Work on the local codebase at {path} for this task: {task}\n\n"
+                "Use Astra's existing MCP tools as the source of truth. Follow this protocol:\n"
+                "1. Call astra_index_repo once to refresh the incremental graph and vector index.\n"
+                "2. Choose only the narrowest next tools for the task: "
+                "search/context tools for explanation, "
+                "path/callers/impact for dependencies, fragility/tether for risk, "
+                "refactor_plan before renames, test_map/affected_tests for test planning, "
+                "run_impacted for validation, and visualize for a graph view.\n"
+                "3. Interpret returned JSON fields and report missing symbols, truncation, "
+                "cycles, untested nodes, "
+                "or failed tests explicitly.\n"
+                "4. Do not repeat indexing between read-only calls unless source files changed.\n"
+                "5. Before edits, review impact, fragility, and refactor_plan. After edits, "
+                "refresh the index and run affected tests. Use astra_visualize to render "
+                "Astra artifacts; "
+                "never generate HTML manually.\n"
+                "6. Use returned paths, nodes, snippets, test selections, and report URLs "
+                "instead of recreating "
+                "Astra's graph, index, test selection, or visualization independently."
+            ),
+        }
+    ]
+
+
 @mcp.tool()
 def astra_index_repo(path: str) -> dict:
     """Index or refresh a local repository before using other Astra tools."""
@@ -95,6 +130,30 @@ def astra_impact(path: str, target: str, max_nodes: int = 200) -> dict:
 def astra_refactor_plan(path: str, target: str, replacement: str) -> dict:
     """Index if needed, then preview a graph-ordered rename without editing files."""
     return _indexed_engine(path).refactor_plan(target, replacement)
+
+
+@mcp.tool()
+def astra_test_map(path: str, limit: int = 1000) -> dict:
+    """Map source declarations to tests that reach them through the graph."""
+    return _indexed_engine(path).test_map(limit)
+
+
+@mcp.tool()
+def astra_affected_tests(path: str, changed_paths: list[str], limit: int = 100) -> dict:
+    """Select indexed test files affected by a set of changed paths."""
+    return _indexed_engine(path).affected_tests(changed_paths, limit)
+
+
+@mcp.tool()
+def astra_gen_test_scaffold(path: str, target: str) -> dict:
+    """Generate a read-only pytest scaffold with target context and dependency hints."""
+    return _indexed_engine(path).test_scaffold(target)
+
+
+@mcp.tool()
+def astra_run_impacted(path: str, changed_paths: list[str], timeout: int = 120) -> dict:
+    """Select and run impacted tests with a bounded local pytest subprocess."""
+    return _indexed_engine(path).run_impacted(changed_paths, timeout)
 
 
 @mcp.tool()

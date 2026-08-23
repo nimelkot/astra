@@ -17,7 +17,7 @@ The constellation mark represents the relationships Astra discovers across a cod
 | Vector index | Stores searchable chunks locally, with optional Sentence Transformers and Chroma acceleration. | `.astra_vectors/` |
 | Dual interfaces | Makes the same engine available to terminal users and MCP hosts. | `astra` and `astra-mcp` |
 
-The MCP surface exposes eleven tools: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_impact`, `astra_refactor_plan`, `astra_hybrid_context`, and `astra_visualize`.
+The MCP surface exposes fifteen tools and one orchestration prompt: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_impact`, `astra_refactor_plan`, `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, `astra_run_impacted`, `astra_hybrid_context`, and `astra_visualize`.
 
 <p align="center">
 	<img src="assets/astra-pipeline.png" alt="Astra indexing pipeline: parse, graph, index, and retrieve" width="900">
@@ -43,11 +43,19 @@ This is the simplest option for using Astra. It installs the `astra` and `astra-
 python -m pip install "git+https://github.com/nimelkot/astra.git"
 ```
 
-To upgrade an existing installation to the latest GitHub version:
+To upgrade only Astra without reinstalling its already-satisfied dependencies:
 
 ```powershell
-python -m pip install --upgrade --force-reinstall "git+https://github.com/nimelkot/astra.git"
+python -m pip install --upgrade --no-deps "git+https://github.com/nimelkot/astra.git"
 ```
+
+`--no-deps` is the targeted update option: it updates the Astra package and its `astra`/`astra-mcp` entry points while skipping dependency resolution and downloads. Use the regular upgrade command instead if Astra's dependency requirements have changed or this is a new environment:
+
+```powershell
+python -m pip install --upgrade "git+https://github.com/nimelkot/astra.git"
+```
+
+Avoid `--force-reinstall` for routine updates. It reinstalls packages even when the required versions are already present and is only useful when the installation itself is damaged.
 
 For an isolated command-line installation, use `pipx`:
 
@@ -67,6 +75,15 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 ```
+
+For a checkout that already has Astra installed in editable mode, the fastest update is to pull the latest source and refresh only when dependencies changed:
+
+```powershell
+git pull
+python -m pip install -e . --no-deps
+```
+
+The editable package points directly at the checkout, so Python code changes are available immediately. Run the install command again only when `pyproject.toml` or dependency versions change.
 
 If `Get-ChildItem pyproject.toml` cannot find the file, you are not in the Astra repository root yet. The folder you want to analyze can be anywhere; it does not need to be inside the Astra checkout.
 
@@ -188,6 +205,19 @@ astra refactor-plan calculate_total sum_total --path C:\Users\YourName\Downloads
 
 The MCP equivalents are `astra_impact` and `astra_refactor_plan`. `astra tether` continues to report orphan declarations and circular dependencies, while `astra visualize` provides the structural anomaly view. See [docs/fragility-hotspots.md](docs/fragility-hotspots.md) for the full CLI/MCP workflow.
 
+### Targeted test workflows
+
+Map declarations to tests, select tests for changed files, generate a scaffold, or run the selected tests:
+
+```powershell
+astra test-map --path C:\Users\YourName\Downloads\my-project
+astra affected-tests app.py --path C:\Users\YourName\Downloads\my-project
+astra test-scaffold calculate_total --path C:\Users\YourName\Downloads\my-project
+astra run-impacted app.py --path C:\Users\YourName\Downloads\my-project
+```
+
+The MCP equivalents are `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, and `astra_run_impacted`. These tools automatically refresh the incremental index. The scaffold is read-only, and test execution is limited to graph-selected test files with a configurable timeout.
+
 ### Tether CI gate policy
 
 Recommended policy for pull-request automation:
@@ -275,8 +305,14 @@ The native tools are:
 | `astra_get_fragility_hotspots(path, limit, threshold)` | Rank fragile declarations using graph centrality, AST complexity, and instability. |
 | `astra_impact(path, target, max_nodes)` | Trace incoming calls and dependencies to report a declaration's blast radius. |
 | `astra_refactor_plan(path, target, replacement)` | Preview a graph-ordered, read-only structural identifier rename. |
+| `astra_test_map(path, limit)` | Map source declarations to tests that reach them and identify untested nodes. |
+| `astra_affected_tests(path, changed_paths, limit)` | Select the minimal test files affected by changed paths. |
+| `astra_gen_test_scaffold(path, target)` | Generate a read-only pytest scaffold with dependency hints. |
+| `astra_run_impacted(path, changed_paths, timeout)` | Run graph-selected tests with a bounded local pytest process. |
 | `astra_hybrid_context(path, query, limit, expansion)` | Combine semantic matches with graph expansion. |
 | `astra_visualize(path, output)` | Generate a local HTML graph report and return its file path and URL. |
+
+See [docs/tool-cookbook.md](docs/tool-cookbook.md) for example CLI and MCP calls, representative output, use cases, and recommended agent workflows for every tool.
 
 The repository includes [.vscode/mcp.json](.vscode/mcp.json) for VS Code MCP clients. For other hosts, register the server in the host's configuration:
 
@@ -287,6 +323,8 @@ args = []
 ```
 
 If the host cannot find commands from your shell, use the absolute executable path: `.venv\Scripts\astra-mcp.exe` on Windows or `.venv/bin/astra-mcp` on macOS/Linux. The server communicates over stdio, so do not redirect its stdout.
+
+MCP clients that expose prompts can select `astra_codebase_workflow` with a local `path` and natural-language `task`. It returns a task-aware sequence for indexing, context gathering, dependency and risk analysis, refactoring, testing, and visualization. Prompts guide the agent; they do not execute tools themselves.
 
 ### MCP tool orchestration
 

@@ -20,6 +20,12 @@ def _engine(path: Path) -> AstraEngine:
     return AstraEngine(path)
 
 
+def _indexed_engine(path: Path) -> AstraEngine:
+    engine = _engine(path)
+    engine.index()
+    return engine
+
+
 @app.command()
 def index(path: Path = typer.Argument(Path("."), exists=True, file_okay=False)) -> None:
     """Index project files under PATH."""
@@ -35,7 +41,7 @@ def search(
 ) -> None:
     """Find code chunks matching a conceptual query."""
     table = Table("Score", "Kind", "Path", "Symbol", "Lines")
-    for result in _engine(path).search(query, limit):
+    for result in _indexed_engine(path).search(query, limit):
         table.add_row(
             f"{result.score:.3f}",
             result.chunk.kind,
@@ -53,7 +59,7 @@ def query(
     path: Path = typer.Option(Path("."), "--path", "-p"),
 ) -> None:
     """Run structural queries, currently: callers FUNCTION."""
-    engine = _engine(path)
+    engine = _indexed_engine(path)
     if type_.lower() != "callers":
         raise typer.BadParameter("TYPE must be callers")
     console.print_json(json.dumps(engine.callers(target)))
@@ -67,7 +73,7 @@ def shortest_path(
     max_hops: int = typer.Option(12, "--max-hops", min=1, max=100),
 ) -> None:
     """Find the shortest structural path between two symbols."""
-    result = _engine(path).path(source, target, max_hops)
+    result = _indexed_engine(path).path(source, target, max_hops)
     if result is None:
         console.print("No structural path found.")
         raise typer.Exit(code=1)
@@ -120,7 +126,7 @@ def dipper(
     max_source_chars: int = typer.Option(280, min=40, max=2000),
 ) -> None:
     """Extract a dependency-complete local subgraph for token-efficient LLM context."""
-    result = _engine(path).dipper(
+    result = _indexed_engine(path).dipper(
         query,
         limit=limit,
         parent_depth=parent_depth,
@@ -138,7 +144,10 @@ def tether(
     fanout_threshold: int = typer.Option(12, min=1, max=500),
 ) -> None:
     """Run structural health checks and report graph anomalies."""
-    result = _engine(path).tether(cycle_limit=cycle_limit, fanout_threshold=fanout_threshold)
+    result = _indexed_engine(path).tether(
+        cycle_limit=cycle_limit,
+        fanout_threshold=fanout_threshold,
+    )
     console.print_json(json.dumps(result))
 
 
@@ -149,7 +158,7 @@ def fragility(
     threshold: float = typer.Option(75.0, min=0, max=100),
 ) -> None:
     """Rank fragile functions and classes using graph and AST metrics."""
-    result = _engine(path).fragility_hotspots(limit=limit, threshold=threshold)
+    result = _indexed_engine(path).fragility_hotspots(limit=limit, threshold=threshold)
     console.print_json(json.dumps(result))
 
 
@@ -160,7 +169,7 @@ def impact(
     max_nodes: int = typer.Option(200, min=1, max=2000),
 ) -> None:
     """Report the upstream blast radius of changing a declaration."""
-    console.print_json(json.dumps(_engine(path).blast_radius(target, max_nodes)))
+    console.print_json(json.dumps(_indexed_engine(path).blast_radius(target, max_nodes)))
 
 
 @app.command("refactor-plan")
@@ -170,7 +179,44 @@ def refactor_plan(
     path: Path = typer.Option(Path("."), "--path", "-p"),
 ) -> None:
     """Preview an ordered, structural identifier rename without editing files."""
-    console.print_json(json.dumps(_engine(path).refactor_plan(target, replacement)))
+    console.print_json(json.dumps(_indexed_engine(path).refactor_plan(target, replacement)))
+
+
+@app.command("test-map")
+def test_map(
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+    limit: int = typer.Option(1000, min=1, max=10000),
+) -> None:
+    """Map source declarations to tests that reach them through the graph."""
+    console.print_json(json.dumps(_indexed_engine(path).test_map(limit)))
+
+
+@app.command("affected-tests")
+def affected_tests(
+    changed_paths: list[str] = typer.Argument(..., metavar="CHANGED_PATH"),
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+) -> None:
+    """Select the minimal indexed test files affected by changed paths."""
+    console.print_json(json.dumps(_indexed_engine(path).affected_tests(changed_paths)))
+
+
+@app.command("test-scaffold")
+def test_scaffold(
+    target: str = typer.Argument(...),
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+) -> None:
+    """Generate a read-only pytest scaffold for an indexed declaration."""
+    console.print_json(json.dumps(_indexed_engine(path).test_scaffold(target)))
+
+
+@app.command("run-impacted")
+def run_impacted(
+    changed_paths: list[str] = typer.Argument(..., metavar="CHANGED_PATH"),
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+    timeout: int = typer.Option(120, min=1, max=3600),
+) -> None:
+    """Run only tests selected from changed paths."""
+    console.print_json(json.dumps(_indexed_engine(path).run_impacted(changed_paths, timeout)))
 
 
 @app.command()
@@ -180,6 +226,7 @@ def visualize(
 ) -> None:
     """Render generated graph and vector artifacts as a local HTML report."""
     try:
+        _indexed_engine(path)
         destination = write_visualization(path, output)
     except VisualizationError as exc:
         raise typer.BadParameter(str(exc)) from exc
