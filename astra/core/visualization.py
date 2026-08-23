@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 from html import escape
 from pathlib import Path
@@ -23,6 +24,18 @@ def _load_json(path: Path) -> object:
         raise VisualizationError(f"Astra artifact not found: {path}") from exc
     except json.JSONDecodeError as exc:
         raise VisualizationError(f"Invalid Astra artifact: {path}") from exc
+
+
+def _logo_data_uri() -> str:
+    candidates = (
+        Path(__file__).resolve().parents[2] / "assets" / "astra-icon-light.png",
+        Path(__file__).resolve().parents[1] / "assets" / "astra-icon-light.png",
+    )
+    for path in candidates:
+        if path.exists():
+            encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+            return f"data:image/png;base64,{encoded}"
+    return ""
 
 
 def build_visualization(root: str | Path) -> str:
@@ -87,6 +100,7 @@ def build_visualization(root: str | Path) -> str:
     ]
     graph_json = json.dumps(graph_data, ensure_ascii=True).replace("</", "<\\/")
     chunks_json = json.dumps(chunk_data, ensure_ascii=True).replace("</", "<\\/")
+    logo_uri = _logo_data_uri()
     title = escape(f"Astra visualization - {target.name}")
     return f'''<!doctype html>
 <html lang="en">
@@ -94,14 +108,17 @@ def build_visualization(root: str | Path) -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="{VIS_NETWORK_URL}"></script>
 <style>
 :root {{ color-scheme:dark; --bg:#12141d; --surface:#1b1e29; --surface-2:#222633; --text:#f4f5f8; --muted:#9ba3b4; --accent:#7dd3fc; --violet:#a78bfa; --amber:#fbbf24; --rose:#fb7185; --line:#343a49; }}
 * {{ box-sizing:border-box; }}
-body {{ margin:0; min-height:100vh; background:radial-gradient(circle at 12% 8%, #202536 0, var(--bg) 38%); color:var(--text); font:14px/1.5 "Segoe UI Variable", "Aptos", sans-serif; }}
+body {{ margin:0; min-height:100vh; background:radial-gradient(circle at 12% 8%, #202536 0, var(--bg) 38%); color:var(--text); font:14px/1.5 "IBM Plex Sans", "Aptos", sans-serif; }}
 header {{ display:flex; justify-content:space-between; gap:24px; align-items:flex-end; padding:24px 30px 18px; border-bottom:1px solid var(--line); background:rgba(18,20,29,.88); backdrop-filter:blur(18px); }}
 .brand {{ display:flex; align-items:center; gap:12px; color:var(--text); font-size:27px; font-weight:650; }}
-.brand svg {{ width:38px; height:38px; flex:none; }}
+.brand img {{ width:42px; height:42px; object-fit:contain; flex:none; }}
 .path {{ color:var(--muted); font:12px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap:anywhere; text-align:right; max-width:52vw; }}
 nav {{ display:flex; gap:4px; padding:12px 30px 0; border-bottom:1px solid var(--line); }}
 button {{ border:1px solid var(--line); border-radius:6px; padding:8px 12px; color:var(--text); background:var(--surface); cursor:pointer; }}
@@ -145,16 +162,16 @@ main {{ padding:18px 30px 30px; }}
 .list li {{ margin:6px 0; color:#cfd3e5; }}
 .anomaly-warn {{ color:#f7d481; }}
 .anomaly-info {{ color:#9db7ff; }}
-.vis-network .vis-button {{ position:relative; width:28px; height:28px; border:1px solid var(--line); border-radius:6px; background-color:var(--surface); background-image:none !important; box-shadow:none !important; filter:none !important; color:var(--accent); opacity:.92; }}
-.vis-network .vis-button::after {{ position:absolute; inset:0; display:grid; place-items:center; font-size:18px; line-height:1; }}
-.vis-network .vis-button.vis-up::after {{ content:'^'; }}
-.vis-network .vis-button.vis-down::after {{ content:'v'; }}
-.vis-network .vis-button.vis-left::after {{ content:'<'; }}
-.vis-network .vis-button.vis-right::after {{ content:'>'; }}
-.vis-network .vis-button.vis-zoomIn::after {{ content:'+'; }}
-.vis-network .vis-button.vis-zoomOut::after {{ content:'-'; }}
-.vis-network .vis-button.vis-zoomExtends::after {{ content:'[]'; font-size:12px; }}
-.vis-network .vis-button:hover {{ border-color:var(--accent); background-color:#2b2741; }}
+.vis-network .vis-button {{ position:relative; width:30px; height:30px; overflow:hidden; border:1px solid var(--line); border-radius:50% !important; background-color:var(--surface); background-image:none !important; box-shadow:none !important; filter:none !important; color:var(--accent); opacity:.92; }}
+.vis-network .vis-button::after {{ content:''; position:absolute; inset:0; border-radius:inherit; background-position:center; background-repeat:no-repeat; background-size:15px 15px; pointer-events:none; }}
+.vis-network .vis-button.vis-up::after {{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237dd3fc' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 15 6-6 6 6'/%3E%3C/svg%3E"); }}
+.vis-network .vis-button.vis-down::after {{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237dd3fc' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }}
+.vis-network .vis-button.vis-left::after {{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237dd3fc' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E"); }}
+.vis-network .vis-button.vis-right::after {{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237dd3fc' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E"); }}
+.vis-network .vis-button.vis-zoomIn::after {{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237dd3fc' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E"); }}
+.vis-network .vis-button.vis-zoomOut::after {{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237dd3fc' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E"); }}
+.vis-network .vis-button.vis-zoomExtends::after {{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237dd3fc' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5'/%3E%3C/svg%3E"); }}
+.vis-network .vis-button:hover {{ border-color:var(--accent); border-radius:50% !important; background-color:#243140; }}
 .vis-network .vis-button:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
 .toolbar {{ display:flex; gap:12px; align-items:center; margin-bottom:12px; }}
 input {{ width:min(520px, 100%); padding:9px 11px; border:1px solid var(--line); border-radius:6px; color:var(--text); background:var(--surface); }}
@@ -170,7 +187,7 @@ pre {{ display:none; margin:10px 0 0; max-height:240px; overflow:auto; white-spa
 </style>
 </head>
 <body>
-<header><div class="brand" aria-label="Astra"><svg id="astra-mark" viewBox="0 0 64 64" role="img" aria-label="Astra mark"><g fill="none" stroke="#7dd3fc" stroke-linecap="round" stroke-width="1.4" opacity=".72"><path d="M18 13 32 30 46 19 32 30 11 38 32 30 52 46 32 30 26 53 32 30"/></g><circle cx="32" cy="30" r="5" fill="#7dd3fc"/><g fill="#f4f5f8"><circle cx="18" cy="13" r="2.6"/><circle cx="46" cy="19" r="2.6"/><circle cx="11" cy="38" r="2.2"/><circle cx="52" cy="46" r="2.2"/><circle cx="26" cy="53" r="3.2"/></g></svg><span>astra intelligence</span></div><div class="path">{escape(str(target))}</div></header>
+<header><div class="brand" aria-label="Astra"><img id="astra-mark" src="{logo_uri}" alt="Astra"><span>astra intelligence</span></div><div class="path">{escape(str(target))}</div></header>
 <nav><button class="tab active" data-panel="structure">Structural graph</button><button class="tab" data-panel="vectors">Vector chunks</button><button class="tab" data-panel="dipper">Dipper scoop</button><button class="tab" data-panel="tether">Tether health</button></nav>
 <main>
 <section id="structure" class="panel active"><div class="graph-heading"><div><h2>Repository knowledge graph</h2><p>Explore dependencies, communities, hotspots, and high-importance star nodes.</p></div><input id="node-filter" type="search" placeholder="Search symbols or paths..."></div><div class="graph-shell"><div id="graph"></div><aside class="control-rail"><div class="rail-section"><div class="rail-title">Graph intelligence</div><label class="switch-row"><span>Hotspots only</span><input id="hotspot-only" type="checkbox"></label><label class="switch-row"><span>Community view</span><input id="community-mode" type="checkbox"></label><label class="switch-row"><span>Star nodes only</span><input id="star-only" type="checkbox"></label><label class="switch-row"><span>Edge labels</span><input id="edge-labels" type="checkbox" checked></label><div id="graph-stats"></div></div><div class="rail-section"><div class="rail-title">Node types</div><div id="legend" class="legend"></div></div><div class="rail-section"><div class="rail-title">Communities / subgraphs</div><div id="community-list" class="community-list"></div></div><div class="rail-section"><div class="rail-title">Relationships</div><div class="rail-stat"><span>defines</span><strong style="color:#94a3b8">solid</strong></div><div class="rail-stat"><span>calls</span><strong style="color:#7dd3fc">cyan</strong></div><div class="rail-stat"><span>depends_on</span><strong style="color:#fbbf24">amber</strong></div></div><div class="rail-section"><div class="rail-title">Selection</div><div id="edge-info" class="edge-info">Select a node or edge to inspect it.</div></div></aside></div></section>
@@ -200,18 +217,19 @@ const edgePalette = {{ defines:'#64748b', calls:'#7dd3fc', depends_on:'#fbbf24' 
 const allNodes = graphData.nodes.map(n => ({{
     ...n,
     color:palette[n.group] || palette.file,
-    font:{{color:'#f4f5f8', face:'Segoe UI Variable'}},
+    font:{{color:'#f4f5f8', face:'IBM Plex Sans', size:13, strokeWidth:3, strokeColor:'#151822'}},
     shape:n.isStar ? 'star' : 'dot',
     size:n.isStar ? 25 : 14,
     borderWidth:n.isHotspot ? 4 : 1.5,
     borderWidthSelected:4,
     shadow:n.isStar ? {{enabled:true, color:'rgba(251,191,36,.45)', size:18}} : false
 }}));
-const allEdges = graphData.edges.map(e => ({{...e, arrows:'to', width:e.label === 'defines' ? 1 : 2, color:{{color:edgePalette[e.label] || '#64748b', opacity:.7, highlight:'#f4f5f8'}}, font:{{color:'#cbd5e1', size:10, align:'middle', strokeWidth:4, strokeColor:'#151822'}}, smooth:{{type:'dynamic'}} }}));
+const allEdges = graphData.edges.map(e => ({{...e, arrows:'to', width:e.label === 'defines' ? 1 : 2, color:{{color:edgePalette[e.label] || '#64748b', opacity:.7, highlight:'#f4f5f8'}}, font:{{color:'#cbd5e1', face:'IBM Plex Sans', size:10, align:'middle', strokeWidth:4, strokeColor:'#151822'}}, smooth:{{type:'dynamic'}} }}));
 const nodeById = new Map(allNodes.map(node => [node.id, node]));
 const chunkById = new Map(chunks.map(chunk => [chunk.id, chunk]));
 let network;
 let dipperNetwork;
+let physicsFreezeTimer;
 function renderGraph() {{
     const query = nodeFilterEl.value.toLowerCase();
     const communityMode = communityModeEl.checked;
@@ -227,9 +245,29 @@ function renderGraph() {{
         level:communityMode ? n.community : undefined
     }}));
     const visibleIds = new Set(visibleNodes.map(n => n.id));
-    const visibleEdges = allEdges.filter(e => visibleIds.has(e.from) && visibleIds.has(e.to)).map(e => ({{...e, font:{{...e.font, size:edgeLabelsEl.checked ? 10 : 0}}}}));
+    const visibleEdges = allEdges.filter(e => visibleIds.has(e.from) && visibleIds.has(e.to)).map(e => {{
+        const sourceCommunity = nodeById.get(e.from)?.community ?? -1;
+        const targetCommunity = nodeById.get(e.to)?.community ?? -1;
+        const sameCommunity = sourceCommunity === targetCommunity;
+        const communityColor = communityPalette[Math.abs(sourceCommunity) % communityPalette.length];
+        const edgeColor = communityMode
+            ? (sameCommunity ? communityColor : '#475569')
+            : (edgePalette[e.label] || '#64748b');
+        return {{
+            ...e,
+            color:{{...e.color, color:edgeColor, highlight:sameCommunity && communityMode ? '#f4f5f8' : edgeColor}},
+            dashes:communityMode && !sameCommunity,
+            font:{{...e.font, size:edgeLabelsEl.checked ? 10 : 0}}
+        }};
+    }});
     const data = {{ nodes:new vis.DataSet(visibleNodes), edges:new vis.DataSet(visibleEdges) }};
-    if (network) network.setData(data);
+    if (network) {{
+        network.setOptions({{physics:{{enabled:true}}}});
+        network.setData(data);
+        network.stabilize(90);
+        clearTimeout(physicsFreezeTimer);
+        physicsFreezeTimer = setTimeout(() => network.setOptions({{physics:false}}), 1200);
+    }}
     else if (window.vis && graphData.nodes.length) {{
         network = new vis.Network(graphEl, data, {{ layout:{{ improvedLayout:true }}, physics:{{ solver:'forceAtlas2Based', forceAtlas2Based:{{ gravitationalConstant:-55, centralGravity:.015, springLength:125, springConstant:.05, damping:.5 }}, stabilization:{{ iterations:110 }} }}, interaction:{{ hover:true, navigationButtons:true, keyboard:true, multiselect:true }}, nodes:{{ size:14, borderWidth:1.5 }}, edges:{{ selectionWidth:3 }} }});
         network.once('stabilizationIterationsDone', () => network.setOptions({{physics:false}}));
@@ -425,6 +463,7 @@ function runTether() {{
 
 document.getElementById('dipper-run').addEventListener('click', runDipper);
 document.getElementById('tether-run').addEventListener('click', runTether);
+if (document.fonts) document.fonts.ready.then(renderGraph);
 runDipper();
 runTether();
 renderChunks();

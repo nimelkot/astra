@@ -200,12 +200,19 @@ def test_visualization_contains_both_artifacts(tmp_path: Path) -> None:
     html = output.read_text(encoding="utf-8")
     assert "Structural graph" in html
     assert "Vector chunks" in html
-    assert "astra-mark" in html
+    assert 'id="astra-mark"' in html
+    assert "data:image/png;base64," in html
     assert "hello" in html
     assert "Hotspots only" in html
     assert "Community view" in html
     assert "Star nodes only" in html
     assert "shape:n.isStar ? 'star'" in html
+    assert "IBM Plex Sans" in html
+    assert "sourceCommunity" in html
+    assert "m6 15 6-6 6 6" in html
+    assert "M12 5v14M5 12h14" in html
+    assert "M9 4H4v5" in html
+    assert "border-radius:50% !important" in html
 
 
 def test_path_returns_none_when_missing_symbol(tmp_path: Path) -> None:
