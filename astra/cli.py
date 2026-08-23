@@ -9,6 +9,7 @@ from rich.table import Table
 
 from .core.engine import AstraEngine
 from .core.visualization import VisualizationError, write_visualization
+from .core.watcher import AstraWatcher
 
 app = typer.Typer(help="Hybrid structural and semantic codebase intelligence.")
 console = Console()
@@ -217,6 +218,22 @@ def run_impacted(
 ) -> None:
     """Run only tests selected from changed paths."""
     console.print_json(json.dumps(_indexed_engine(path).run_impacted(changed_paths, timeout)))
+
+
+@app.command("watch")
+def watch(
+    path: Path = typer.Argument(Path("."), exists=True, file_okay=False),
+    interval: float = typer.Option(1.0, min=0.25, max=60.0),
+) -> None:
+    """Continuously refresh Astra artifacts while files change."""
+    watcher = AstraWatcher(path, interval=interval)
+    console.print_json(json.dumps(watcher.start()))
+    try:
+        watcher.wait()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        watcher.stop()
 
 
 @app.command()

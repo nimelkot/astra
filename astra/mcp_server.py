@@ -6,8 +6,10 @@ from mcp.server import MCPServer
 
 from .core.engine import AstraEngine
 from .core.visualization import write_visualization
+from .core.watcher import AstraWatcher
 
 mcp = MCPServer("Astra", version="0.1.0")
+_watchers: dict[str, AstraWatcher] = {}
 
 
 def _indexed_engine(path: str) -> AstraEngine:
@@ -154,6 +156,37 @@ def astra_gen_test_scaffold(path: str, target: str) -> dict:
 def astra_run_impacted(path: str, changed_paths: list[str], timeout: int = 120) -> dict:
     """Select and run impacted tests with a bounded local pytest subprocess."""
     return _indexed_engine(path).run_impacted(changed_paths, timeout)
+
+
+@mcp.tool()
+def astra_start_watch(path: str, interval: float = 1.0) -> dict:
+    """Start one background index watcher for a workspace and return its status."""
+    root = str(Path(path).resolve())
+    watcher = _watchers.get(root)
+    if watcher is None:
+        watcher = AstraWatcher(root, interval=interval)
+        _watchers[root] = watcher
+    return watcher.start()
+
+
+@mcp.tool()
+def astra_index_status(path: str) -> dict:
+    """Return the background watcher status for a workspace."""
+    root = str(Path(path).resolve())
+    watcher = _watchers.get(root)
+    if watcher is None:
+        return {"root": root, "running": False, "index_count": 0, "last_error": None}
+    return watcher.status()
+
+
+@mcp.tool()
+def astra_stop_watch(path: str) -> dict:
+    """Stop the background index watcher for a workspace."""
+    root = str(Path(path).resolve())
+    watcher = _watchers.pop(root, None)
+    if watcher is None:
+        return {"root": root, "running": False, "index_count": 0, "last_error": None}
+    return watcher.stop()
 
 
 @mcp.tool()
