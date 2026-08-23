@@ -8,7 +8,19 @@ from .core.engine import AstraEngine
 from .core.visualization import write_visualization
 from .core.watcher import AstraWatcher
 
-mcp = MCPServer("Astra", version="0.1.0")
+mcp = MCPServer(
+    "Astra",
+    version="0.1.0",
+    instructions=(
+        "Astra provides indexed code intelligence for the connected local workspace. "
+        "Before analysis, use astra_index_repo once; analysis tools refresh the incremental "
+        "index automatically. Use semantic/context tools for discovery, graph tools for "
+        "dependencies and impact, fragility/tether for risk, refactor_plan before edits, "
+        "affected-tests and run_impacted after edits, and astra_visualize for rendered Astra "
+        "artifacts. Reuse returned JSON, source locations, test selections, and report URLs; "
+        "do not recreate Astra indexes, graphs, or HTML independently."
+    ),
+)
 _watchers: dict[str, AstraWatcher] = {}
 
 
