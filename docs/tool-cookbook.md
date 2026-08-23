@@ -32,6 +32,8 @@ astra_index_repo({"path": "C:\\path\\to\\project"})
 
 Use this when an agent begins work on a repository, after a large checkout change, or before handing the workspace to another tool.
 
+**Interpretation:** `files` counts indexed files and `chunks` counts searchable graph/vector records. The graph and vectors paths confirm which local artifacts later tools will consume. A successful response does not mean every file parsed successfully; compare counts between runs and inspect parser warnings or missing expected symbols.
+
 ## Search and Context
 
 ### 1. `astra_semantic_search`
@@ -63,6 +65,8 @@ astra_semantic_search({
 ```
 
 Returns a list of scored chunks with paths, symbols, line ranges, and source text.
+
+**Interpretation:** Higher `score` means a stronger lexical or semantic match, not proof that the chunk is the answer. Use `path`, line ranges, and `source` to inspect the best few results, then use graph tools to verify relationships.
 
 ### 2. `astra_get_callers`
 
@@ -99,6 +103,8 @@ Example output:
 ]
 ```
 
+**Interpretation:** Each returned item is a direct incoming relationship. `calls` indicates a call edge and `depends_on` indicates a structural dependency. An empty list means no matching incoming edges were found, not necessarily that the symbol is unused in runtime behavior.
+
 ### 3. `astra_hybrid_context`
 
 **Use case:** Give an agent semantic matches plus structural callers for a dependency-aware answer.
@@ -128,6 +134,8 @@ Example output shape:
   "related": [{"name": "checkout", "path": "src/checkout.py", "relationship": "calls"}]
 }
 ```
+
+**Interpretation:** `matches` are semantic candidates and `related` are graph-expanded callers. Prefer results that appear in both lists when building context for an edit; a result in only one list needs normal source inspection.
 
 ### 4. `astra_dipper`
 
@@ -162,6 +170,8 @@ Example output shape:
   "snippets": [{"path": "src/payments.py", "name": "retry_payment", "source": "..."}]
 }
 ```
+
+**Interpretation:** `seeds` are the initial symbol or search matches. `nodes` and `edges` define the selected subgraph, while `snippets` are the source excerpts safe to place in an LLM prompt. Increase depth or limits only when the current context is missing a dependency.
 
 ## Graph Analysis
 
@@ -198,6 +208,8 @@ Shortest path (1 hops):
   checkout() --calls--> charge_card()
 ```
 
+**Interpretation:** The arrows show relationship direction. The hop count measures graph edges, not source distance or runtime latency. `No structural path found` means the symbols could not be resolved or are disconnected in the indexed graph.
+
 ### 6. `astra_tether`
 
 **Use case:** Run an architecture health gate for circular dependencies, orphan declarations, and high fan-out nodes.
@@ -227,6 +239,8 @@ Example output shape:
   "details": {"cycles": [{"length": 2, "nodes": ["a", "b"]}]}
 }
 ```
+
+**Interpretation:** `pass` means no cycles were detected; `warn` means at least one cycle exists. Treat `orphans` as a review queue rather than automatic dead-code proof, and inspect the node lists before removing declarations. High fan-out indicates coupling that may deserve a refactor.
 
 ### 7. `astra_get_fragility_hotspots`
 
@@ -265,6 +279,8 @@ Example output shape:
 }
 ```
 
+**Interpretation:** Scores range from 0 to 100 relative to the indexed workspace. `critical` means the score meets the supplied threshold; `watch` means it is below it. Compare the component values to decide whether risk comes from callers, logic complexity, or coupling rather than acting on the composite score alone.
+
 ### 8. `astra_impact`
 
 **Use case:** Calculate the upstream blast radius before editing a function or class, including affected files.
@@ -296,6 +312,8 @@ Example output shape:
   "truncated": false
 }
 ```
+
+**Interpretation:** `found` confirms the target resolved. `distance` is the number of incoming graph steps from the target, `files` is the review scope, and `truncated` warns that `max_nodes` limited the result. A missing target should be resolved before editing.
 
 ### 9. `astra_refactor_plan`
 
@@ -337,6 +355,8 @@ Example output shape:
 
 The plan is intentionally read-only. Review it, apply an approved syntax-aware edit, and re-index.
 
+**Interpretation:** `order` is the recommended dependency order, `changes` contains source previews, and `occurrences` counts identifier-boundary matches in each chunk. `cycles: true` means no perfect topological order exists and the returned order requires human review. Never treat `apply: false` as an applied rename.
+
 ### 10. `astra_visualize`
 
 **Use case:** Inspect the indexed graph, vector chunks, Dipper context, and Tether anomalies in a local HTML report.
@@ -366,6 +386,8 @@ Example output:
 ```
 
 The tool refreshes the incremental index and renders Astra's artifacts. Agents should use this tool instead of generating an HTML graph manually.
+
+**Interpretation:** The returned `path` is the generated report and `url` is the local browser URL. The report is a view of the current Astra artifacts; if nodes are missing, re-check the index counts and source discovery rather than editing the HTML.
 
 ## Targeted Testing
 
@@ -399,6 +421,8 @@ Example output shape:
 }
 ```
 
+**Interpretation:** `tested: true` means at least one indexed test declaration reaches the source node through graph edges. `untested` is a prioritization signal, not a code-coverage percentage. Review the `tests` IDs and remember dynamically discovered tests may not appear in the structural graph.
+
 ### 12. `astra_affected_tests`
 
 **Use case:** Convert changed files from a pull request into the smallest graph-selected test file set.
@@ -428,6 +452,8 @@ Example output shape:
   "uncovered_changed_nodes": []
 }
 ```
+
+**Interpretation:** `test_files` is the minimal graph-selected file list to pass to pytest. `uncovered_changed_nodes` identifies changed declarations with no discovered test path, which should trigger focused manual or new-test work. An empty test list means no structural test dependency was found.
 
 ### 13. `astra_gen_test_scaffold`
 
@@ -459,6 +485,8 @@ Example output shape:
 ```
 
 The scaffold is text output only. The agent should add project-specific fixtures, mocks, and assertions before writing it to a test file.
+
+**Interpretation:** `found` and `target_node` confirm which declaration was selected. The scaffold's dependency comment is a review hint, not a complete fixture plan. The intentional `pytest.fail` keeps an incomplete scaffold from being mistaken for passing coverage.
 
 ### 14. `astra_run_impacted`
 
@@ -492,6 +520,8 @@ Example output shape:
 ```
 
 Possible statuses are `passed`, `failed`, `timeout`, and `no_tests`. The runner uses the active Python interpreter, does not invoke a shell, and truncates captured output to keep MCP responses manageable.
+
+**Interpretation:** `passed` means pytest returned exit code 0 for the selected files; `failed` exposes a nonzero test result in `output`; `timeout` requires a narrower test set or longer timeout; and `no_tests` means the graph found no test files. Always inspect `returncode` and `output` before reporting success.
 
 ## Recommended Agent Sequences
 
