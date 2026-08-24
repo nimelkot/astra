@@ -402,6 +402,23 @@ def test_validate_change_plans_and_runs_targeted_tests(tmp_path: Path) -> None:
     assert result["execution"]["status"] == "passed"
 
 
+def test_health_gate_returns_architecture_decision(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(
+        "def shared():\n    return 1\n\n"
+        "def checkout():\n    return shared()\n",
+        encoding="utf-8",
+    )
+    engine = AstraEngine(tmp_path)
+    engine.index()
+
+    report = engine.health_gate(fail_on="never")
+
+    assert report["status"] in {"pass", "warn"}
+    assert report["fail_on"] == "never"
+    assert "critical" in report["summary"]
+    assert isinstance(report["findings"], list)
+
+
 def test_watcher_reindexes_changed_files(tmp_path: Path) -> None:
     source_file = tmp_path / "app.py"
     source_file.write_text("def greet():\n    return 'hi'\n", encoding="utf-8")

@@ -675,6 +675,48 @@ Example output shape:
 
 **Interpretation:** `test_selection` explains the graph-selected scope, `risk` contains fragility and star-node evidence, and `execution` reports whether tests actually ran. `plan` must return `execution.status: not_run`; never treat selected tests as proof of success. Read `recommendations` for missing coverage, critical hotspots, or failed/timeout execution.
 
+### 21. `astra_health_gate`
+
+**Use case:** Produce one compact architecture-readiness report for CI, pull requests, and agent pre-edit review.
+
+CLI:
+
+```powershell
+astra health-gate --path C:\path\to\project --changed src\payments.py --fail-on critical
+```
+
+MCP:
+
+```text
+astra_health_gate({
+  "path": "C:\\path\\to\\project",
+  "changed_paths": ["src/payments.py"],
+  "fail_on": "critical"
+})
+```
+
+The gate combines Tether cycles/orphans, fragility hotspots, star nodes, optional blast radius, affected tests, and untested changed nodes. `fail_on` accepts `critical`, `warn`, or `never`.
+
+Example output shape:
+
+```json
+{
+  "status": "warn",
+  "fail_on": "critical",
+  "summary": {
+    "findings": 1,
+    "critical": 0,
+    "warnings": 1,
+    "cycles": 0,
+    "affected_test_files": 2
+  },
+  "findings": [{"type": "star_node_touched", "severity": "warn"}],
+  "affected_tests": ["tests/test_payments.py"]
+}
+```
+
+**Interpretation:** `pass` means no finding crossed the selected gate, `warn` means findings exist but not at the configured failure level, and `fail` means the `fail_on` threshold was met. Use `never` for reporting-only CI jobs. Findings are review evidence, not automatic proof of a defect.
+
 ## Recommended Agent Sequences
 
 ### Understand before editing

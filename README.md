@@ -21,7 +21,7 @@ Astra is designed as a local **code intelligence fabric**: a deterministic struc
 | **Agent orchestration** | Provides Dipper context scoops, Tether architecture checks, refactor plans, targeted test execution, and the `astra_codebase_workflow` MCP prompt. | Gives AI agents a disciplined operating model with evidence before edits and validation after edits. | CLI commands and MCP tools/prompts |
 | **Live delivery surfaces** | Serves the same engine through terminal commands, MCP, local HTML visualization, and a continuous filesystem watcher. | Fits developer workstations, CI pipelines, long-running agent sessions, and visual architecture reviews without duplicating logic. | `astra`, `astra-mcp`, and `astra visualize` |
 
-The MCP surface exposes twenty tools and one orchestration prompt: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_star_nodes`, `astra_impact`, `astra_refactor_plan`, `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, `astra_run_impacted`, `astra_validate_change`, `astra_start_watch`, `astra_index_status`, `astra_stop_watch`, `astra_hybrid_context`, and `astra_visualize`.
+The MCP surface exposes twenty-one tools and one orchestration prompt: `astra_index_repo`, `astra_semantic_search`, `astra_get_callers`, `astra_path`, `astra_dipper`, `astra_tether`, `astra_get_fragility_hotspots`, `astra_star_nodes`, `astra_impact`, `astra_refactor_plan`, `astra_test_map`, `astra_affected_tests`, `astra_gen_test_scaffold`, `astra_run_impacted`, `astra_validate_change`, `astra_health_gate`, `astra_start_watch`, `astra_index_status`, `astra_stop_watch`, `astra_hybrid_context`, and `astra_visualize`.
 
 <p align="center">
 	<img src="assets/astra-pipeline.png" alt="Astra indexing pipeline: parse, graph, index, and retrieve" width="900">
@@ -331,10 +331,13 @@ The native tools are:
 | `astra_gen_test_scaffold(path, target)` | Generate a read-only pytest scaffold with dependency hints. |
 | `astra_run_impacted(path, changed_paths, timeout)` | Run graph-selected tests with a bounded local pytest process. |
 | `astra_validate_change(path, changed_paths, target, mode, timeout)` | Orchestrate impact, risk, test selection, scaffolding, and validation. |
+| `astra_health_gate(path, changed_paths, target, fail_on)` | Return one architecture-readiness decision for CI and pull requests. |
 | `astra_hybrid_context(path, query, limit, expansion)` | Combine semantic matches with graph expansion. |
 | `astra_visualize(path, output)` | Generate a local HTML graph report and return its file path and URL. |
 
 See [docs/tool-cookbook.md](docs/tool-cookbook.md) for example CLI and MCP calls, representative output, use cases, and recommended agent workflows for every tool.
+
+See [docs/tools/](docs/tools/) for a focused reference page for each CLI/MCP tool, including parameters, output fields, interpretation guidance, and recommended agent sequencing.
 
 The repository includes [.vscode/mcp.json](.vscode/mcp.json) for VS Code MCP clients. For other hosts, register the server in the host's configuration:
 

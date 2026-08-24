@@ -396,6 +396,88 @@ class AstraEngine:
             "recommendations": recommendations,
         }
 
+    def health_gate(
+        self,
+        changed_paths: list[str] | None = None,
+        target: str | None = None,
+        fail_on: str = "critical",
+    ) -> dict:
+        if fail_on not in {"critical", "warn", "never"}:
+            raise ValueError("fail_on must be critical, warn, or never")
+        paths = [Path(path).as_posix() for path in (changed_paths or [])]
+        impact = self.blast_radius(target, max_nodes=500) if target else None
+        if target and impact and impact.get("found"):
+            paths = sorted({node["path"] for node in impact["nodes"] if node.get("path")})
+        tether = self.tether()
+        fragility = self.fragility_hotspots(limit=10, threshold=75)
+        stars = self.star_nodes(limit=10, threshold=60)
+        selection = self.affected_tests(paths) if paths else {
+            "changed_paths": [],
+            "changed_nodes": [],
+            "test_files": [],
+            "uncovered_changed_nodes": [],
+        }
+        findings: list[dict] = []
+        if tether["summary"]["cycles"]:
+            findings.append(
+                {"severity": "warn", "type": "cycles", "count": tether["summary"]["cycles"]}
+            )
+        critical = [item for item in fragility["hotspots"] if item["classification"] == "critical"]
+        if critical:
+            findings.extend(
+                {"severity": "critical", "type": "fragility_hotspot", **item}
+                for item in critical
+            )
+        star_ids = {item["id"] for item in stars["stars"] if item["is_star"]}
+        touched_stars = [node for node in (impact or {}).get("nodes", []) if node["id"] in star_ids]
+        for node in touched_stars:
+            findings.append(
+                {
+                    "severity": "warn",
+                    "type": "star_node_touched",
+                    "name": node["name"],
+                    "path": node.get("path"),
+                    "reason": (
+                        "High dependency concentration makes this declaration change-sensitive."
+                    ),
+                }
+            )
+        if selection["uncovered_changed_nodes"]:
+            findings.append(
+                {
+                    "severity": "warn",
+                    "type": "untested_changed_nodes",
+                    "count": len(selection["uncovered_changed_nodes"]),
+                }
+            )
+        warning_count = sum(item["severity"] == "warn" for item in findings)
+        critical_count = sum(item["severity"] == "critical" for item in findings)
+        status = "pass"
+        if fail_on == "warn" and warning_count:
+            status = "fail"
+        elif fail_on == "critical" and critical_count:
+            status = "fail"
+        elif findings:
+            status = "warn"
+        return {
+            "root": str(self.root),
+            "status": status,
+            "fail_on": fail_on,
+            "summary": {
+                "findings": len(findings),
+                "critical": critical_count,
+                "warnings": warning_count,
+                "cycles": tether["summary"]["cycles"],
+                "orphans": tether["summary"]["orphans"],
+                "star_nodes_touched": len(touched_stars),
+                "impacted_files": len((impact or {}).get("files", [])),
+                "affected_test_files": len(selection["test_files"]),
+                "untested_changed_nodes": len(selection["uncovered_changed_nodes"]),
+            },
+            "findings": findings,
+            "affected_tests": selection["test_files"],
+        }
+
     def _run_full_tests(self, timeout: int) -> dict:
         command = [sys.executable, "-m", "pytest"]
         try:

@@ -246,6 +246,22 @@ def validate_change(
     console.print_json(json.dumps(result))
 
 
+@app.command("health-gate")
+def health_gate(
+    changed_paths: list[str] = typer.Option([], "--changed", "-c"),
+    target: str | None = typer.Option(None, "--target", "-t"),
+    fail_on: str = typer.Option("critical", "--fail-on"),
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+) -> None:
+    """Summarize architecture health and return a CI-ready gate result."""
+    if fail_on not in {"critical", "warn", "never"}:
+        raise typer.BadParameter("FAIL_ON must be critical, warn, or never")
+    result = _indexed_engine(path).health_gate(changed_paths, target, fail_on)
+    console.print_json(json.dumps(result))
+    if result["status"] == "fail":
+        raise typer.Exit(code=1)
+
+
 @app.command("watch")
 def watch(
     path: Path = typer.Argument(Path("."), exists=True, file_okay=False),
