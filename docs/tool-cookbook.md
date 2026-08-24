@@ -717,7 +717,7 @@ Example output shape:
 }
 ```
 
-**Interpretation:** `pass` means no finding crossed the selected gate, `warn` means findings exist but not at the configured failure level, and `fail` means the `fail_on` threshold was met. Use `never` for reporting-only CI jobs. Findings are review evidence, not automatic proof of a defect.
+**Interpretation:** `pass` means no finding crossed the selected gate, `warn` means findings exist but not at the configured failure level, and `fail` means the `fail_on` threshold was met. Each cycle finding includes a `cycle_number` and source-located nodes so chains can be reviewed individually. Use `never` for reporting-only CI jobs. Findings are review evidence, not automatic proof of a defect.
 
 ## Recommended Agent Sequences
 

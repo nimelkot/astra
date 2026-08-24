@@ -419,25 +419,25 @@ class AstraEngine:
         }
         findings: list[dict] = []
         if tether["summary"]["cycles"]:
-            cycle_nodes = [
-                {
-                    "id": node_id,
-                    "name": self.graph.graph.nodes[node_id].get("name", node_id),
-                    "path": self.graph.graph.nodes[node_id].get("path"),
-                    "start_line": self.graph.graph.nodes[node_id].get("start_line"),
-                }
-                for cycle in tether["details"]["cycles"]
-                for node_id in cycle["nodes"]
-                if node_id in self.graph.graph
-            ]
-            findings.append(
-                {
-                    "severity": "warn",
-                    "type": "cycles",
-                    "count": tether["summary"]["cycles"],
-                    "nodes": cycle_nodes,
-                }
-            )
+            for cycle_number, cycle in enumerate(tether["details"]["cycles"], start=1):
+                cycle_nodes = [
+                    {
+                        "id": node_id,
+                        "name": self.graph.graph.nodes[node_id].get("name", node_id),
+                        "path": self.graph.graph.nodes[node_id].get("path"),
+                        "start_line": self.graph.graph.nodes[node_id].get("start_line"),
+                    }
+                    for node_id in cycle["nodes"]
+                    if node_id in self.graph.graph
+                ]
+                findings.append(
+                    {
+                        "severity": "warn",
+                        "type": "cycle",
+                        "cycle_number": cycle_number,
+                        "nodes": cycle_nodes,
+                    }
+                )
         critical = [item for item in fragility["hotspots"] if item["classification"] == "critical"]
         if critical:
             findings.extend(
