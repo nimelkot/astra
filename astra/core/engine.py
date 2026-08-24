@@ -327,6 +327,95 @@ class AstraEngine:
             "output": (completed.stdout + completed.stderr)[-12000:],
         }
 
+    def validate_change(
+        self,
+        changed_paths: list[str] | None = None,
+        target: str | None = None,
+        mode: str = "targeted",
+        timeout: int = 120,
+    ) -> dict:
+        if mode not in {"plan", "targeted", "scaffold", "full"}:
+            raise ValueError("mode must be plan, targeted, scaffold, or full")
+        paths = [Path(path).as_posix() for path in (changed_paths or [])]
+        impact = self.blast_radius(target, max_nodes=500) if target else None
+        if target and impact and impact.get("found"):
+            paths = sorted(
+                {
+                    node["path"]
+                    for node in impact["nodes"]
+                    if node.get("path") and node.get("kind") != "module"
+                }
+            )
+        selection = self.affected_tests(paths) if paths else {
+            "changed_paths": [],
+            "changed_nodes": [],
+            "tests": [],
+            "test_files": [],
+            "uncovered_changed_nodes": [],
+        }
+        fragility = self.fragility_hotspots(limit=10, threshold=75)
+        stars = self.star_nodes(limit=10, threshold=60)
+        scaffold_targets = [target] if target else []
+        scaffold_targets.extend(
+            self.graph.graph.nodes[node].get("name")
+            for node in selection["uncovered_changed_nodes"][:5]
+            if node in self.graph.graph
+        )
+        scaffolds = (
+            [self.test_scaffold(name) for name in dict.fromkeys(scaffold_targets)]
+            if mode == "scaffold"
+            else []
+        )
+        execution: dict = {"status": "not_run", "returncode": None, "output": ""}
+        if mode == "targeted" and paths:
+            execution = self.run_impacted(paths, timeout)
+        elif mode == "full":
+            execution = self._run_full_tests(timeout)
+        critical = [item for item in fragility["hotspots"] if item["classification"] == "critical"]
+        recommendations = []
+        if selection["uncovered_changed_nodes"]:
+            recommendations.append(
+                "Add tests for changed declarations without a graph path to a test."
+            )
+        if critical:
+            recommendations.append("Review critical fragility hotspots before merging.")
+        if execution["status"] in {"failed", "timeout"}:
+            recommendations.append("Resolve the impacted test execution result before merging.")
+        if not selection["test_files"] and mode != "full":
+            recommendations.append("No impacted tests were found; review coverage manually.")
+        return {
+            "root": str(self.root),
+            "mode": mode,
+            "target": target,
+            "changed_paths": paths,
+            "impact": impact,
+            "test_selection": selection,
+            "risk": {"fragility": fragility, "star_nodes": stars},
+            "scaffolds": scaffolds,
+            "execution": execution,
+            "recommendations": recommendations,
+        }
+
+    def _run_full_tests(self, timeout: int) -> dict:
+        command = [sys.executable, "-m", "pytest"]
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=self.root,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            return {"command": command, "status": "timeout", "returncode": None, "output": str(exc)}
+        return {
+            "command": command,
+            "status": "passed" if completed.returncode == 0 else "failed",
+            "returncode": completed.returncode,
+            "output": (completed.stdout + completed.stderr)[-12000:],
+        }
+
     def _is_test_node(self, node: str, data: dict) -> bool:
         path = str(data.get("path", "")).lower()
         name = str(data.get("name", "")).lower()

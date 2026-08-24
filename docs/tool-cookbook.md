@@ -634,6 +634,47 @@ astra_stop_watch({"path": "C:\\path\\to\\project"})
 
 **Interpretation:** `running: false` confirms shutdown. Existing graph, vector, and cache artifacts remain available; later tools can still use on-demand incremental indexing.
 
+### 20. `astra_validate_change`
+
+**Use case:** Run one explainable workflow for pre-commit, pull-request, and AI-assisted edit validation instead of manually composing every analysis and test call.
+
+CLI:
+
+```powershell
+astra validate-change --path C:\path\to\project --changed src\payments.py --mode targeted --timeout 120
+astra validate-change --path C:\path\to\project --target charge_card --mode plan
+```
+
+MCP:
+
+```text
+astra_validate_change({
+  "path": "C:\\path\\to\\project",
+  "changed_paths": ["src/payments.py"],
+  "target": null,
+  "mode": "targeted",
+  "timeout": 120
+})
+```
+
+Supported modes are `plan` (analysis only), `targeted` (run graph-selected tests), `scaffold` (return reviewed pytest stubs), and `full` (run the complete pytest suite only when explicitly requested).
+
+Example output shape:
+
+```json
+{
+  "mode": "targeted",
+  "test_selection": {
+    "test_files": ["tests/test_payments.py"],
+    "uncovered_changed_nodes": []
+  },
+  "execution": {"status": "passed", "returncode": 0},
+  "recommendations": []
+}
+```
+
+**Interpretation:** `test_selection` explains the graph-selected scope, `risk` contains fragility and star-node evidence, and `execution` reports whether tests actually ran. `plan` must return `execution.status: not_run`; never treat selected tests as proof of success. Read `recommendations` for missing coverage, critical hotspots, or failed/timeout execution.
+
 ## Recommended Agent Sequences
 
 ### Understand before editing
