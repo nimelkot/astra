@@ -432,6 +432,8 @@ The tool refreshes the incremental index and renders Astra's artifacts. Agents s
 
 **Interpretation:** The returned `path` is the generated report and `url` is the local browser URL. The report is a view of the current Astra artifacts; if nodes are missing, re-check the index counts and source discovery rather than editing the HTML.
 
+The report's **Command center** tab combines the indexed `astra_health_gate` architecture decision with an `astra_validate_change` plan. Use it for a compact visual summary, then call the individual tools when a finding needs deeper evidence or test execution.
+
 ## Targeted Testing
 
 ### 12. `astra_test_map`
@@ -634,6 +636,89 @@ astra_stop_watch({"path": "C:\\path\\to\\project"})
 
 **Interpretation:** `running: false` confirms shutdown. Existing graph, vector, and cache artifacts remain available; later tools can still use on-demand incremental indexing.
 
+### 20. `astra_validate_change`
+
+**Use case:** Run one explainable workflow for pre-commit, pull-request, and AI-assisted edit validation instead of manually composing every analysis and test call.
+
+CLI:
+
+```powershell
+astra validate-change --path C:\path\to\project --changed src\payments.py --mode targeted --timeout 120
+astra validate-change --path C:\path\to\project --target charge_card --mode plan
+```
+
+MCP:
+
+```text
+astra_validate_change({
+  "path": "C:\\path\\to\\project",
+  "changed_paths": ["src/payments.py"],
+  "target": null,
+  "mode": "targeted",
+  "timeout": 120
+})
+```
+
+Supported modes are `plan` (analysis only), `targeted` (run graph-selected tests), `scaffold` (return reviewed pytest stubs), and `full` (run the complete pytest suite only when explicitly requested).
+
+Example output shape:
+
+```json
+{
+  "mode": "targeted",
+  "test_selection": {
+    "test_files": ["tests/test_payments.py"],
+    "uncovered_changed_nodes": []
+  },
+  "execution": {"status": "passed", "returncode": 0},
+  "recommendations": []
+}
+```
+
+**Interpretation:** `test_selection` explains the graph-selected scope, `risk` contains fragility and star-node evidence, and `execution` reports whether tests actually ran. `plan` must return `execution.status: not_run`; never treat selected tests as proof of success. Read `recommendations` for missing coverage, critical hotspots, or failed/timeout execution.
+
+### 21. `astra_health_gate`
+
+**Use case:** Produce one compact architecture-readiness report for CI, pull requests, and agent pre-edit review.
+
+CLI:
+
+```powershell
+astra health-gate --path C:\path\to\project --changed src\payments.py --fail-on critical
+```
+
+MCP:
+
+```text
+astra_health_gate({
+  "path": "C:\\path\\to\\project",
+  "changed_paths": ["src/payments.py"],
+  "fail_on": "critical"
+})
+```
+
+The gate combines Tether cycles/orphans, fragility hotspots, star nodes, optional blast radius, affected tests, and untested changed nodes. `fail_on` accepts `critical`, `warn`, or `never`.
+
+Example output shape:
+
+```json
+{
+  "status": "warn",
+  "fail_on": "critical",
+  "summary": {
+    "findings": 1,
+    "critical": 0,
+    "warnings": 1,
+    "cycles": 0,
+    "affected_test_files": 2
+  },
+  "findings": [{"type": "star_node_touched", "severity": "warn"}],
+  "affected_tests": ["tests/test_payments.py"]
+}
+```
+
+**Interpretation:** `pass` means no finding crossed the selected gate, `warn` means findings exist but not at the configured failure level, and `fail` means the `fail_on` threshold was met. Each cycle finding includes a `cycle_number` and source-located nodes so chains can be reviewed individually. Use `never` for reporting-only CI jobs. Findings are review evidence, not automatic proof of a defect.
+
 ## Recommended Agent Sequences
 
 ### Understand before editing
@@ -672,3 +757,5 @@ The prompt returns instructions to call `astra_index_repo` first, choose only th
 Server instructions and prompts are guidance, not executable workflows: the MCP client or LLM still decides whether and when to call each tool. A client that does not surface server instructions can still use the slash-command prompt, while the tools' automatic incremental index refresh remains the enforcement layer when guidance is skipped.
 
 Every MCP tool also has a companion prompt named `<tool_name>_prompt`, such as `astra_visualize_prompt` or `astra_impact_prompt`. These appear as slash commands in clients that expose MCP prompts and accept `path` plus a natural-language `task`. They provide the exact tool-routing context, but the client still performs the actual tool call.
+
+For a ranked capability overview, see [tool-capability-matrix.md](tool-capability-matrix.md). Individual reference pages are available in [tools/](tools/).

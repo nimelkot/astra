@@ -30,7 +30,12 @@ MCP_INSTRUCTIONS = (
     "5. Test deliberately: use astra_test_map to find untested declarations, "
     "astra_affected_tests for changed paths, astra_gen_test_scaffold for a reviewed pytest "
     "stub, and astra_run_impacted after edits. Interpret status, returncode, and output; "
-    "never claim success from test selection alone.\n"
+    "never claim success from test selection alone. Use astra_validate_change as the "
+    "high-level testing orchestrator: plan for analysis only, targeted for selected tests, "
+    "scaffold for reviewed pytest stubs, and full only when explicitly requested.\n"
+    "Use astra_health_gate for one architecture-readiness decision combining Tether, "
+    "fragility, star nodes, impact, and untested changed nodes. Use fail_on=critical for "
+    "critical-only CI gating, fail_on=warn for strict gating, or fail_on=never for reporting.\n"
     "6. Render: use astra_visualize for the current knowledge graph, vector chunks, Dipper, "
     "and Tether views. It renders Astra artifacts; never generate equivalent HTML manually.\n"
     "7. For every result, report missing symbols, empty selections, truncation, cycles, "
@@ -101,6 +106,10 @@ def _register_tool_prompts() -> None:
         "astra_affected_tests": "Select tests affected by changed paths.",
         "astra_gen_test_scaffold": "Generate a read-only pytest scaffold for a target.",
         "astra_run_impacted": "Run the graph-selected impacted tests.",
+        "astra_validate_change": (
+            "Orchestrate impact, risk, test selection, scaffolding, and validation."
+        ),
+        "astra_health_gate": "Return one architecture-readiness decision for CI and pull requests.",
         "astra_start_watch": "Start continuous background indexing for a workspace.",
         "astra_index_status": "Check continuous indexing status.",
         "astra_stop_watch": "Stop continuous background indexing.",
@@ -247,6 +256,29 @@ def astra_gen_test_scaffold(path: str, target: str) -> dict:
 def astra_run_impacted(path: str, changed_paths: list[str], timeout: int = 120) -> dict:
     """Select and run impacted tests with a bounded local pytest subprocess."""
     return _indexed_engine(path).run_impacted(changed_paths, timeout)
+
+
+@mcp.tool()
+def astra_validate_change(
+    path: str,
+    changed_paths: list[str] | None = None,
+    target: str | None = None,
+    mode: str = "targeted",
+    timeout: int = 120,
+) -> dict:
+    """Orchestrate impact, risk, test selection, scaffolding, and validation."""
+    return _indexed_engine(path).validate_change(changed_paths, target, mode, timeout)
+
+
+@mcp.tool()
+def astra_health_gate(
+    path: str,
+    changed_paths: list[str] | None = None,
+    target: str | None = None,
+    fail_on: str = "critical",
+) -> dict:
+    """Summarize architecture health and return a CI-ready gate result."""
+    return _indexed_engine(path).health_gate(changed_paths, target, fail_on)
 
 
 @mcp.tool()

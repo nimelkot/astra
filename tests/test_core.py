@@ -200,6 +200,13 @@ def test_visualization_contains_both_artifacts(tmp_path: Path) -> None:
     html = output.read_text(encoding="utf-8")
     assert "Structural graph" in html
     assert "Vector chunks" in html
+    assert "Command center" in html
+    assert "commandData" in html
+    assert "Architecture readiness" in html
+    assert "Testing readiness" in html
+    assert "findingLocation" in html
+    assert "Changed paths:" in html
+    assert "cycle_number" in html
     assert 'id="astra-mark"' in html
     assert "data:image/png;base64," in html
     assert "hello" in html
@@ -379,6 +386,44 @@ def test_run_impacted_executes_selected_tests(tmp_path: Path) -> None:
 
     assert result["status"] == "passed"
     assert result["returncode"] == 0
+
+
+def test_validate_change_plans_and_runs_targeted_tests(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text("def total(value):\n    return value\n", encoding="utf-8")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_app.py").write_text(
+        "from app import total\n\n"
+        "def test_total():\n"
+        "    assert total(2) == 2\n",
+        encoding="utf-8",
+    )
+    engine = AstraEngine(tmp_path)
+    engine.index()
+
+    plan = engine.validate_change(["app.py"], mode="plan")
+    result = engine.validate_change(["app.py"], mode="targeted")
+
+    assert plan["execution"]["status"] == "not_run"
+    assert plan["test_selection"]["test_files"] == ["tests/test_app.py"]
+    assert result["execution"]["status"] == "passed"
+
+
+def test_health_gate_returns_architecture_decision(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(
+        "def shared():\n    return 1\n\n"
+        "def checkout():\n    return shared()\n",
+        encoding="utf-8",
+    )
+    engine = AstraEngine(tmp_path)
+    engine.index()
+
+    report = engine.health_gate(fail_on="never")
+
+    assert report["status"] in {"pass", "warn"}
+    assert report["fail_on"] == "never"
+    assert "critical" in report["summary"]
+    assert isinstance(report["findings"], list)
 
 
 def test_watcher_reindexes_changed_files(tmp_path: Path) -> None:

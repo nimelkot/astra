@@ -231,6 +231,37 @@ def run_impacted(
     console.print_json(json.dumps(_indexed_engine(path).run_impacted(changed_paths, timeout)))
 
 
+@app.command("validate-change")
+def validate_change(
+    changed_paths: list[str] = typer.Option([], "--changed", "-c"),
+    target: str | None = typer.Option(None, "--target", "-t"),
+    mode: str = typer.Option("targeted", "--mode"),
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+    timeout: int = typer.Option(120, min=1, max=3600),
+) -> None:
+    """Plan or run an impact-aware validation workflow."""
+    if mode not in {"plan", "targeted", "scaffold", "full"}:
+        raise typer.BadParameter("MODE must be plan, targeted, scaffold, or full")
+    result = _indexed_engine(path).validate_change(changed_paths, target, mode, timeout)
+    console.print_json(json.dumps(result))
+
+
+@app.command("health-gate")
+def health_gate(
+    changed_paths: list[str] = typer.Option([], "--changed", "-c"),
+    target: str | None = typer.Option(None, "--target", "-t"),
+    fail_on: str = typer.Option("critical", "--fail-on"),
+    path: Path = typer.Option(Path("."), "--path", "-p"),
+) -> None:
+    """Summarize architecture health and return a CI-ready gate result."""
+    if fail_on not in {"critical", "warn", "never"}:
+        raise typer.BadParameter("FAIL_ON must be critical, warn, or never")
+    result = _indexed_engine(path).health_gate(changed_paths, target, fail_on)
+    console.print_json(json.dumps(result))
+    if result["status"] == "fail":
+        raise typer.Exit(code=1)
+
+
 @app.command("watch")
 def watch(
     path: Path = typer.Argument(Path("."), exists=True, file_okay=False),
