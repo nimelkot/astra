@@ -5,6 +5,7 @@ import json
 from html import escape
 from pathlib import Path
 
+from .engine import AstraEngine
 from .graph import StructuralGraph
 
 # ruff: noqa: E501
@@ -53,6 +54,9 @@ def build_visualization(root: str | Path) -> str:
         threshold=50,
     )
     communities = structural_graph.communities()
+    engine = AstraEngine(target)
+    health_gate = engine.health_gate(fail_on="never")
+    validation = engine.validate_change(mode="plan")
     stars_by_id = {item["id"]: item for item in star_report["stars"]}
     hotspots_by_id = {item["id"]: item for item in fragility_report["hotspots"]}
     graph_data = {
@@ -98,8 +102,10 @@ def build_visualization(root: str | Path) -> str:
         }
         for chunk in chunks
     ]
+    command_data = {"health_gate": health_gate, "validation": validation}
     graph_json = json.dumps(graph_data, ensure_ascii=True).replace("</", "<\\/")
     chunks_json = json.dumps(chunk_data, ensure_ascii=True).replace("</", "<\\/")
+    command_json = json.dumps(command_data, ensure_ascii=True).replace("</", "<\\/")
     logo_uri = _logo_data_uri()
     title = escape(f"Astra visualization - {target.name}")
     return f'''<!doctype html>
@@ -184,21 +190,34 @@ input {{ width:min(520px, 100%); padding:9px 11px; border:1px solid var(--line);
 pre {{ display:none; margin:10px 0 0; max-height:240px; overflow:auto; white-space:pre-wrap; color:#cfd3e5; font:12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; }}
 .chunk.open pre {{ display:block; }}
 .empty {{ padding:24px 0; color:var(--muted); }}
+.command-grid {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }}
+.command-panel {{ border:1px solid var(--line); border-radius:8px; background:var(--surface); padding:18px; }}
+.command-panel h2 {{ margin:0 0 4px; font-size:18px; }}
+.command-panel p {{ margin:0 0 14px; color:var(--muted); }}
+.command-status {{ display:flex; align-items:center; justify-content:space-between; padding:12px; border-radius:6px; background:var(--surface-2); margin-bottom:12px; }}
+.command-status strong {{ font-size:20px; color:var(--accent); text-transform:uppercase; }}
+.command-status.warn strong {{ color:var(--amber); }}
+.command-status.fail strong {{ color:var(--rose); }}
+.command-findings {{ margin:0; padding-left:18px; color:#d7dae2; }}
+.command-findings li {{ margin:7px 0; }}
+.command-action {{ margin-top:14px; color:var(--muted); font:11px/1.5 ui-monospace,monospace; overflow-wrap:anywhere; }}
 @media (max-width:900px) {{ .graph-shell {{ grid-template-columns:1fr; }} .control-rail {{ height:auto; border-left:0; border-top:1px solid var(--line); }} #graph {{ height:560px; }} header {{ align-items:flex-start; flex-direction:column; }} .path {{ text-align:left; max-width:100%; }} }}
 </style>
 </head>
 <body>
 <header><div class="brand" aria-label="Astra"><img id="astra-mark" src="{logo_uri}" alt="Astra"><span>astra intelligence</span></div><div class="path">{escape(str(target))}</div></header>
-<nav><button class="tab active" data-panel="structure">Structural graph</button><button class="tab" data-panel="vectors">Vector chunks</button><button class="tab" data-panel="dipper">Dipper scoop</button><button class="tab" data-panel="tether">Tether health</button></nav>
+<nav><button class="tab active" data-panel="structure">Structural graph</button><button class="tab" data-panel="vectors">Vector chunks</button><button class="tab" data-panel="dipper">Dipper scoop</button><button class="tab" data-panel="tether">Tether health</button><button class="tab" data-panel="command">Command center</button></nav>
 <main>
 <section id="structure" class="panel active"><div class="graph-heading"><div><h2>Repository knowledge graph</h2><p>Explore dependencies, communities, hotspots, and high-importance star nodes.</p></div><input id="node-filter" type="search" placeholder="Search symbols or paths..."></div><div class="graph-shell"><div id="graph"></div><aside class="control-rail"><div class="rail-section"><div class="rail-title">Graph intelligence</div><label class="switch-row"><span>Hotspots only</span><input id="hotspot-only" type="checkbox"></label><label class="switch-row"><span>Community view</span><input id="community-mode" type="checkbox"></label><label class="switch-row"><span>Star nodes only</span><input id="star-only" type="checkbox"></label><label class="switch-row"><span>Edge labels</span><input id="edge-labels" type="checkbox" checked></label><div id="graph-stats"></div></div><div class="rail-section"><div class="rail-title">Node types</div><div id="legend" class="legend"></div><div class="legend-note">Counts include isolated nodes without visible relationship edges.</div></div><div class="rail-section"><div class="rail-title">Communities / subgraphs</div><div id="community-list" class="community-list"></div></div><div class="rail-section"><div class="rail-title">Relationships</div><div class="rail-stat"><span>defines</span><strong style="color:#94a3b8">solid</strong></div><div class="rail-stat"><span>calls</span><strong style="color:#7dd3fc">cyan</strong></div><div class="rail-stat"><span>depends_on</span><strong style="color:#fbbf24">amber</strong></div></div><div class="rail-section"><div class="rail-title">Selection</div><div id="edge-info" class="edge-info">Select a node or edge to inspect it.</div></div></aside></div></section>
 <section id="vectors" class="panel"><div class="toolbar"><input id="filter" type="search" placeholder="Filter files, symbols, or source..."><span id="count"></span></div><div id="chunks"></div></section>
 <section id="dipper" class="panel"><div class="graph-toolbar"><input id="dipper-query" type="search" placeholder="Query symbol or concept (for example: checkout, parser, sql)"><label>Seeds <input id="dipper-limit" type="number" value="5" min="1" max="25" style="width:72px"></label><label>Parent depth <input id="dipper-parent" type="number" value="1" min="0" max="6" style="width:72px"></label><label>Child depth <input id="dipper-child" type="number" value="1" min="0" max="6" style="width:72px"></label><label>Max nodes <input id="dipper-max" type="number" value="80" min="5" max="300" style="width:72px"></label><button id="dipper-run">Scoop context</button></div><div id="dipper-summary" class="cards"></div><div id="dipper-graph"></div><div id="dipper-snippets" class="list" style="margin-top:10px;"></div></section>
 <section id="tether" class="panel"><div class="graph-toolbar"><label>Fanout threshold <input id="tether-fanout" type="number" value="12" min="1" max="200" style="width:80px"></label><label>Cycle limit <input id="tether-cycles" type="number" value="20" min="1" max="200" style="width:80px"></label><button id="tether-run">Run health checks</button></div><div id="tether-summary" class="cards"></div><div id="tether-anomalies" class="list"></div></section>
+<section id="command" class="panel"><div class="graph-heading"><div><h2>Code health command center</h2><p>One view for architecture readiness and testing readiness.</p></div><div class="path">Server-computed from current Astra artifacts</div></div><div id="command-content" class="command-grid"></div></section>
 </main>
 <script>
 const graphData = {graph_json};
 const chunks = {chunks_json};
+const commandData = {command_json};
 const palette = {{ module:'#94a3b8', class:'#a78bfa', function:'#7dd3fc', method:'#34d399', file:'#64748b', section:'#fbbf24', key:'#fb7185', element:'#38bdf8' }};
 const communityPalette = ['#7dd3fc','#a78bfa','#34d399','#fbbf24','#fb7185','#60a5fa','#f97316','#c084fc','#2dd4bf','#e879f9'];
 const graphEl = document.getElementById('graph');
@@ -482,11 +501,27 @@ function runTether() {{
     anomaliesEl.innerHTML = `<ul>${{items.join('')}}</ul>`;
 }}
 
+function renderCommandCenter() {{
+    const health = commandData.health_gate;
+    const validation = commandData.validation;
+    const healthFindings = health.findings.length
+        ? health.findings.slice(0, 8).map(item => `<li><strong>${{escapeHtml(item.severity)}}</strong> · ${{escapeHtml(item.type)}} ${{escapeHtml(item.name || '')}}</li>`).join('')
+        : '<li>No architecture findings at the current threshold.</li>';
+    const recommendations = validation.recommendations.length
+        ? validation.recommendations.map(item => `<li>${{escapeHtml(item)}}</li>`).join('')
+        : '<li>No immediate testing recommendations.</li>';
+    document.getElementById('command-content').innerHTML = `
+        <article class="command-panel"><h2>Architecture readiness</h2><p>Health gate combines Tether, fragility, stars, impact, and test reachability.</p><div class="command-status ${{health.status}}"><span>Gate status</span><strong>${{escapeHtml(health.status)}}</strong></div><div class="cards"><div class="card"><strong>${{health.summary.critical}}</strong><span>critical</span></div><div class="card"><strong>${{health.summary.warnings}}</strong><span>warnings</span></div><div class="card"><strong>${{health.summary.cycles}}</strong><span>cycles</span></div><div class="card"><strong>${{health.summary.star_nodes_touched}}</strong><span>stars touched</span></div></div><ul class="command-findings">${{healthFindings}}</ul><div class="command-action">astra health-gate --path ${{escapeHtml(health.root)}} --fail-on critical</div></article>
+        <article class="command-panel"><h2>Testing readiness</h2><p>Validate-change plans an evidence-backed test scope without running it.</p><div class="command-status ${{validation.execution.status}}"><span>Execution in plan mode</span><strong>${{escapeHtml(validation.execution.status)}}</strong></div><div class="cards"><div class="card"><strong>${{validation.test_selection.test_files.length}}</strong><span>affected test files</span></div><div class="card"><strong>${{validation.test_selection.uncovered_changed_nodes.length}}</strong><span>untested nodes</span></div><div class="card"><strong>${{validation.risk.star_nodes.star_count}}</strong><span>star nodes</span></div></div><ul class="command-findings">${{recommendations}}</ul><div class="command-action">astra validate-change --path ${{escapeHtml(validation.root)}} --mode targeted</div></article>
+    `;
+}}
+
 document.getElementById('dipper-run').addEventListener('click', runDipper);
 document.getElementById('tether-run').addEventListener('click', runTether);
 if (document.fonts) document.fonts.ready.then(renderGraph);
 runDipper();
 runTether();
+renderCommandCenter();
 renderChunks();
 </script>
 </body>

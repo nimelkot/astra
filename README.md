@@ -285,6 +285,7 @@ This writes `.astra_visualization.html` into the target folder. Open that file i
 
 - **Structural graph**: interactive modules, classes, functions, methods, and definition/call edges from `.astra_graph.json`.
 - **Vector chunks**: searchable file and symbol cards from `.astra_vectors/chunks.json`, with expandable source previews.
+- **Command center**: server-computed architecture readiness from `astra_health_gate` and testing readiness from `astra_validate_change` in plan mode.
 
 You can choose a different output path:
 
@@ -338,6 +339,8 @@ The native tools are:
 See [docs/tool-cookbook.md](docs/tool-cookbook.md) for example CLI and MCP calls, representative output, use cases, and recommended agent workflows for every tool.
 
 See [docs/tools/](docs/tools/) for a focused reference page for each CLI/MCP tool, including parameters, output fields, interpretation guidance, and recommended agent sequencing.
+
+See [docs/tool-capability-matrix.md](docs/tool-capability-matrix.md) for a ranked view of each tool's capability coverage.
 
 The repository includes [.vscode/mcp.json](.vscode/mcp.json) for VS Code MCP clients. For other hosts, register the server in the host's configuration:
 

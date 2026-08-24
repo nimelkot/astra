@@ -432,6 +432,8 @@ The tool refreshes the incremental index and renders Astra's artifacts. Agents s
 
 **Interpretation:** The returned `path` is the generated report and `url` is the local browser URL. The report is a view of the current Astra artifacts; if nodes are missing, re-check the index counts and source discovery rather than editing the HTML.
 
+The report's **Command center** tab combines the indexed `astra_health_gate` architecture decision with an `astra_validate_change` plan. Use it for a compact visual summary, then call the individual tools when a finding needs deeper evidence or test execution.
+
 ## Targeted Testing
 
 ### 12. `astra_test_map`
@@ -755,3 +757,5 @@ The prompt returns instructions to call `astra_index_repo` first, choose only th
 Server instructions and prompts are guidance, not executable workflows: the MCP client or LLM still decides whether and when to call each tool. A client that does not surface server instructions can still use the slash-command prompt, while the tools' automatic incremental index refresh remains the enforcement layer when guidance is skipped.
 
 Every MCP tool also has a companion prompt named `<tool_name>_prompt`, such as `astra_visualize_prompt` or `astra_impact_prompt`. These appear as slash commands in clients that expose MCP prompts and accept `path` plus a natural-language `task`. They provide the exact tool-routing context, but the client still performs the actual tool call.
+
+For a ranked capability overview, see [tool-capability-matrix.md](tool-capability-matrix.md). Individual reference pages are available in [tools/](tools/).
