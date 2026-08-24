@@ -204,6 +204,7 @@ def test_visualization_contains_both_artifacts(tmp_path: Path) -> None:
     assert "commandData" in html
     assert "Architecture readiness" in html
     assert "Testing readiness" in html
+    assert "findingLocation" in html
     assert 'id="astra-mark"' in html
     assert "data:image/png;base64," in html
     assert "hello" in html

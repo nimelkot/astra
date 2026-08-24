@@ -504,8 +504,12 @@ function runTether() {{
 function renderCommandCenter() {{
     const health = commandData.health_gate;
     const validation = commandData.validation;
+    const findingLocation = item => item.path ? `${{item.path}}:${{item.start_line || ''}}` : '';
     const healthFindings = health.findings.length
-        ? health.findings.slice(0, 8).map(item => `<li><strong>${{escapeHtml(item.severity)}}</strong> · ${{escapeHtml(item.type)}} ${{escapeHtml(item.name || '')}}</li>`).join('')
+        ? health.findings.slice(0, 8).map(item => {{
+            const nodes = (item.nodes || []).slice(0, 6).map(node => `${{node.name}} · ${{node.path}}:${{node.start_line || ''}}`).join('<br>');
+            return `<li><strong>${{escapeHtml(item.severity)}}</strong> · ${{escapeHtml(item.type)}} ${{escapeHtml(item.name || '')}} ${{escapeHtml(findingLocation(item))}}${{nodes ? '<br>' + nodes : ''}}</li>`;
+        }}).join('')
         : '<li>No architecture findings at the current threshold.</li>';
     const recommendations = validation.recommendations.length
         ? validation.recommendations.map(item => `<li>${{escapeHtml(item)}}</li>`).join('')

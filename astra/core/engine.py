@@ -419,8 +419,24 @@ class AstraEngine:
         }
         findings: list[dict] = []
         if tether["summary"]["cycles"]:
+            cycle_nodes = [
+                {
+                    "id": node_id,
+                    "name": self.graph.graph.nodes[node_id].get("name", node_id),
+                    "path": self.graph.graph.nodes[node_id].get("path"),
+                    "start_line": self.graph.graph.nodes[node_id].get("start_line"),
+                }
+                for cycle in tether["details"]["cycles"]
+                for node_id in cycle["nodes"]
+                if node_id in self.graph.graph
+            ]
             findings.append(
-                {"severity": "warn", "type": "cycles", "count": tether["summary"]["cycles"]}
+                {
+                    "severity": "warn",
+                    "type": "cycles",
+                    "count": tether["summary"]["cycles"],
+                    "nodes": cycle_nodes,
+                }
             )
         critical = [item for item in fragility["hotspots"] if item["classification"] == "critical"]
         if critical:
@@ -443,11 +459,22 @@ class AstraEngine:
                 }
             )
         if selection["uncovered_changed_nodes"]:
+            uncovered_nodes = [
+                {
+                    "id": node_id,
+                    "name": self.graph.graph.nodes[node_id].get("name", node_id),
+                    "path": self.graph.graph.nodes[node_id].get("path"),
+                    "start_line": self.graph.graph.nodes[node_id].get("start_line"),
+                }
+                for node_id in selection["uncovered_changed_nodes"]
+                if node_id in self.graph.graph
+            ]
             findings.append(
                 {
                     "severity": "warn",
                     "type": "untested_changed_nodes",
-                    "count": len(selection["uncovered_changed_nodes"]),
+                    "count": len(uncovered_nodes),
+                    "nodes": uncovered_nodes,
                 }
             )
         warning_count = sum(item["severity"] == "warn" for item in findings)
